@@ -1,0 +1,2096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Order Management System v3</title>
+  
+  <style>
+    /* ================================================================
+       SECTION 1: CSS VARIABLES & RESET
+       ================================================================ */
+    :root {
+      --color-primary: #005bd3;
+      --color-primary-dark: #004b9c;
+      --color-success: #10b981;
+      --color-warning: #fbbf24;
+      --color-danger: #ef4444;
+      --color-text: #212b36;
+      --color-text-light: #6d7175;
+      --color-border: #e1e3e5;
+      --color-bg: #f6f6f7;
+      --color-white: #ffffff;
+      
+      --radius-sm: 6px;
+      --radius-md: 8px;
+      --radius-lg: 12px;
+      
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--color-bg);
+      color: var(--color-text);
+    }
+
+    /* ================================================================
+       SECTION 2: LOADING SKELETONS
+       ================================================================ */
+    .skeleton {
+      background: linear-gradient(
+        90deg,
+        #f0f0f0 0%,
+        #e0e0e0 50%,
+        #f0f0f0 100%
+      );
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s ease-in-out infinite;
+      border-radius: var(--radius-md);
+    }
+    
+    @keyframes skeleton-loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+    
+    .skeleton-line {
+      height: 16px;
+      margin-bottom: 12px;
+    }
+    
+    .skeleton-line:last-child {
+      width: 60%;
+    }
+    
+    .skeleton-card {
+      height: 140px;
+      margin-bottom: 16px;
+    }
+    
+    .skeleton-table-row {
+      height: 60px;
+      margin-bottom: 8px;
+    }
+
+    /* ================================================================
+       SECTION 3: LAYOUT & NAVIGATION
+       ================================================================ */
+    .top-nav {
+      background: var(--color-white);
+      border-bottom: 1px solid var(--color-border);
+      padding: 12px 20px;
+    }
+    
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      list-style: none;
+    }
+    
+    .nav-tab {
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--color-text-light);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      background: none;
+    }
+    
+    .nav-tab.active {
+      background: var(--color-bg);
+      color: var(--color-text);
+    }
+    
+    .nav-tab:hover:not(.active) {
+      background: #f9fafb;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+
+    /* ================================================================
+       SECTION 4: DASHBOARD CARDS
+       ================================================================ */
+    .dashboard {
+      display: grid;
+      grid-template-columns: 2fr 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    
+    @media (max-width: 1200px) {
+      .dashboard {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .stat-card {
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      transition: box-shadow 0.2s;
+    }
+    
+    .stat-card:hover {
+      box-shadow: var(--shadow-md);
+    }
+    
+    .stat-header {
+      font-size: 12px;
+      color: var(--color-text-light);
+      font-weight: 600;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .stat-main {
+      display: flex;
+      gap: 24px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    
+    .stat-number-group {
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .stat-number {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--color-text-light);
+      font-weight: 500;
+    }
+    
+    .stat-details {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      flex: 1;
+    }
+    
+    .stat-detail-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid #f1f2f4;
+    }
+    
+    .stat-detail-row:last-child {
+      border-bottom: none;
+    }
+    
+    .stat-detail-label {
+      color: var(--color-text-light);
+      font-weight: 500;
+    }
+    
+    .stat-detail-value {
+      font-weight: 600;
+      color: var(--color-text);
+    }
+
+    /* Status Breakdown Grid */
+    .status-breakdown-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    
+    .status-column-title {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--color-text-light);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      letter-spacing: 0.5px;
+    }
+    
+    .status-table {
+      width: 100%;
+      font-size: 12px;
+    }
+    
+    .status-table tbody tr {
+      border-bottom: 1px solid #f1f2f4;
+    }
+    
+    .status-table tbody tr:last-child {
+      border-bottom: none;
+    }
+    
+    .status-table td {
+      padding: 6px 4px;
+    }
+    
+    .status-table td:last-child {
+      text-align: right;
+      font-weight: 600;
+    }
+    
+    .status-indicator {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    
+    .status-indicator-new-order { background: #fbbf24; }
+    .status-indicator-ordered { background: #3b82f6; }
+    .status-indicator-delivered-to-mailroom { background: #10b981; }
+    .status-indicator-completed { background: #059669; }
+    .status-indicator-awaiting-club-response { background: #f97316; }
+    .status-indicator-cancelled { background: #ef4444; }
+
+    /* ================================================================
+       SECTION 5: STATUS BADGES
+       ================================================================ */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .status-badge.status-new-order {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .status-badge.status-ordered {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .status-badge.status-delivered-to-mailroom {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .status-badge.status-completed {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .status-badge.status-awaiting-club-response {
+      background: #fed7aa;
+      color: #9a3412;
+    }
+    
+    .status-badge.status-cancelled {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    .platform-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 500;
+    }
+    
+    .platform-amazon {
+      background: #fff3cd;
+      color: #856404;
+    }
+    
+    .platform-target {
+      background: #f8d7da;
+      color: #721c24;
+    }
+
+    /* ================================================================
+       SECTION 6: SEARCH & FILTERS
+       ================================================================ */
+    .search-section {
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    
+    .search-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    
+    .search-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #c9cccf;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-family: inherit;
+    }
+    
+    .search-input:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(0, 91, 211, 0.1);
+    }
+    
+    .filter-select {
+      padding: 8px 12px;
+      border: 1px solid #c9cccf;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      background: var(--color-white);
+      cursor: pointer;
+      font-family: inherit;
+      min-width: 160px;
+    }
+    
+    .filter-select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+    }
+
+    /* ================================================================
+       SECTION 7: BUTTONS
+       ================================================================ */
+    .btn {
+      padding: 8px 16px;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: none;
+      font-family: inherit;
+      display: inline-block;
+      text-align: center;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn-primary {
+      background: var(--color-primary);
+      color: var(--color-white);
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: var(--color-primary-dark);
+    }
+    
+    .btn-secondary {
+      background: var(--color-bg);
+      color: var(--color-text);
+      border: 1px solid #c9cccf;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: #e3e4e6;
+    }
+    
+    .btn-sm {
+      padding: 4px 8px;
+      font-size: 12px;
+    }
+
+    /* ================================================================
+       SECTION 8: TABLES
+       ================================================================ */
+    .orders-section {
+      background: var(--color-white);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+    }
+    
+    .orders-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .orders-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    
+    .orders-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .orders-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .orders-table th {
+      background: #f9fafb;
+      padding: 12px 16px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--color-text-light);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--color-border);
+      white-space: nowrap;
+    }
+    
+    .orders-table td {
+      padding: 16px;
+      border-bottom: 1px solid #f1f2f4;
+      font-size: 14px;
+      vertical-align: middle;
+    }
+    
+    .orders-table tbody tr {
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    
+    .orders-table tbody tr:hover {
+      background: #f9fafb;
+    }
+    
+    @media (max-width: 1200px) {
+      .orders-table {
+        font-size: 13px;
+      }
+      
+      .orders-table td {
+        padding: 12px;
+      }
+    }
+
+    /* ================================================================
+       SECTION 9: MODALS
+       ================================================================ */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      overflow: auto;
+      background-color: rgba(0,0,0,0.5);
+    }
+    
+    .modal-content {
+      background-color: var(--color-white);
+      margin: 5% auto;
+      padding: 0;
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius-lg);
+      width: 90%;
+      max-width: 800px;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--color-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-text);
+    }
+    
+    .close {
+      color: var(--color-text-light);
+      font-size: 28px;
+      font-weight: bold;
+      cursor: pointer;
+      line-height: 1;
+    }
+    
+    .close:hover {
+      color: var(--color-text);
+    }
+    
+    .modal-body {
+      padding: 20px;
+    }
+
+    /* ================================================================
+       SECTION 10: NOTIFICATIONS (TOAST)
+       ================================================================ */
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+
+    /* ================================================================
+       SECTION 11: UTILITY CLASSES
+       ================================================================ */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-text-light);
+    }
+    
+    .error {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--color-danger);
+    }
+    
+    .success {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: var(--color-success);
+      color: var(--color-white);
+      padding: 12px 20px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-md);
+      z-index: 9999;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- ================================================================
+       NAVIGATION
+       ================================================================ -->
+  <nav class="top-nav">
+    <ul class="nav-tabs">
+      <li class="nav-tab active" data-tab="orders">Orders</li>
+      <li class="nav-tab" data-tab="documents">Documents</li>
+      <li class="nav-tab" data-tab="setup">Setup</li>
+    </ul>
+  </nav>
+
+  <!-- ================================================================
+       MAIN CONTAINER
+       ================================================================ -->
+  <div class="container">
+    
+    <!-- ORDERS TAB -->
+    <div id="orders-tab" class="tab-content active">
+      <!-- Dashboard -->
+      <div id="dashboard-container"></div>
+      
+      <!-- Search & Filters -->
+      <div class="search-section">
+        <div class="search-row">
+          <input type="text" class="search-input" id="search-input" 
+                 placeholder="Search orders, clubs, events...">
+          <select class="filter-select" id="platform-filter">
+            <option value="">All Platforms</option>
+            <option value="amazon">Amazon</option>
+            <option value="target">Target</option>
+          </select>
+          <select class="filter-select" id="status-filter">
+            <option value="">All Status</option>
+            <option value="new-order">New Order</option>
+            <option value="ordered">Ordered</option>
+            <option value="delivered-to-mailroom">Delivered to Mailroom</option>
+            <option value="completed">Completed</option>
+            <option value="awaiting-club-response">Awaiting Club Response</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button class="btn btn-primary" onclick="applyFilters()">Search</button>
+          <button class="btn btn-secondary" onclick="clearFilters()">Clear</button>
+        </div>
+      </div>
+      
+      <!-- Orders Table -->
+      <div class="orders-section">
+        <div class="orders-header">
+          <h2 class="orders-title">Orders</h2>
+          <div class="orders-actions">
+            <button class="btn btn-primary" onclick="loadOrderData()">Refresh</button>
+            <button class="btn btn-secondary" onclick="exportData()">Export CSV</button>
+          </div>
+        </div>
+        <div id="orders-container">
+          <!-- Orders will be loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCUMENTS TAB -->
+    <div id="documents-tab" class="tab-content">
+      <div class="orders-section">
+        <div class="orders-header">
+          <h2 class="orders-title">Document Submissions</h2>
+          <div class="orders-actions">
+            <button class="btn btn-primary" onclick="loadDocumentData()">Refresh</button>
+            <button class="btn btn-secondary" onclick="exportDocumentData()">Export CSV</button>
+          </div>
+        </div>
+        <div id="documents-container">
+          <!-- Documents will be loaded here -->
+        </div>
+      </div>
+    </div>
+
+    <!-- SETUP TAB -->
+    <div id="setup-tab" class="tab-content">
+      <div class="stat-card">
+        <h2>Google Sheets Integration Status</h2>
+        <div id="connection-status">
+          <div class="loading">Testing connection...</div>
+        </div>
+        <div style="margin-top: 20px;">
+          <button class="btn btn-primary" onclick="testConnection()">Test Connection</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ================================================================
+       MODALS (Order Details, Edit, etc.)
+       ================================================================ -->
+  <div id="orderModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="modalTitle">Order Details</h2>
+        <span class="close" onclick="closeOrderModal()">&times;</span>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Order details populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================================
+       JAVASCRIPT
+       ================================================================ -->
+  <script>
+    /* ================================================================
+       SECTION 1: CONFIGURATION & STATE
+       ================================================================ */
+    const APP_CONFIG = {
+      loggingEnabled: true,
+      debugMode: false
+    };
+    
+    let orderData = { amazon: [], target: [] };
+    let namesData = { clubs: [], employees: [] };
+    let documentData = [];
+    let filteredOrders = [];
+    let currentEditOrder = null;
+    let currentEditPlatform = null;
+
+    /* ================================================================
+       SECTION 2: LOGGING SYSTEM
+       ================================================================ */
+    const Logger = {
+      log(action, details) {
+        if (!APP_CONFIG.loggingEnabled) return;
+        
+        const logEntry = {
+          timestamp: new Date().toISOString(),
+          action: action,
+          details: details
+        };
+        
+        console.log(`[${action}]`, details);
+        
+        // Store in localStorage for debugging
+        try {
+          const logs = JSON.parse(localStorage.getItem('app_logs') || '[]');
+          logs.push(logEntry);
+          if (logs.length > 100) logs.shift();
+          localStorage.setItem('app_logs', JSON.stringify(logs));
+        } catch (e) {
+          // localStorage might be disabled
+        }
+      },
+      
+      error(action, error) {
+        console.error(`[ERROR: ${action}]`, error);
+        this.log(action, { 
+          error: error.message || error.toString(), 
+          level: 'ERROR' 
+        });
+      },
+      
+      viewLogs() {
+        try {
+          const logs = JSON.parse(localStorage.getItem('app_logs') || '[]');
+          console.table(logs);
+          return logs;
+        } catch (e) {
+          console.log('No logs available');
+          return [];
+        }
+      },
+      
+      clearLogs() {
+        localStorage.removeItem('app_logs');
+        console.log('Logs cleared');
+      }
+    };
+
+    /* ================================================================
+       SECTION 3: LOADING SKELETONS
+       ================================================================ */
+    function showSkeleton(containerId, type = 'table') {
+      const container = document.getElementById(containerId);
+      
+      if (type === 'table') {
+        container.innerHTML = `
+          <div class="skeleton skeleton-table-row"></div>
+          <div class="skeleton skeleton-table-row"></div>
+          <div class="skeleton skeleton-table-row"></div>
+          <div class="skeleton skeleton-table-row"></div>
+          <div class="skeleton skeleton-table-row"></div>
+        `;
+      } else if (type === 'dashboard') {
+        container.innerHTML = `
+          <div class="dashboard">
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+            <div class="skeleton skeleton-card"></div>
+          </div>
+        `;
+      }
+      
+      Logger.log('SKELETON_SHOWN', { containerId, type });
+    }
+
+    /* ================================================================
+       SECTION 4: DATA LOADING
+       ================================================================ */
+    function loadOrderData() {
+      Logger.log('ORDER_LOAD_STARTED', {});
+      showSkeleton('orders-container', 'table');
+      showSkeleton('dashboard-container', 'dashboard');
+      
+      Promise.all([
+        new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getAllOrders();
+        }),
+        new Promise((resolve, reject) => {
+          google.script.run
+            .withSuccessHandler(resolve)
+            .withFailureHandler(reject)
+            .getNamesData();
+        })
+      ]).then(([ordersResult, namesResult]) => {
+        Logger.log('ORDER_LOAD_SUCCESS', {
+          orderCount: ordersResult.total,
+          loadTime: ordersResult.loadTimeMs
+        });
+        
+        if (ordersResult.success) {
+          orderData.amazon = ordersResult.amazon || [];
+          orderData.target = ordersResult.target || [];
+        }
+        
+        if (namesResult.success) {
+          namesData.clubs = namesResult.clubs || [];
+          namesData.employees = namesResult.employees || [];
+        }
+        
+        updateDashboard();
+        displayOrders();
+        showToast('Orders loaded successfully', 'success');
+        
+      }).catch(error => {
+        Logger.error('ORDER_LOAD_FAILED', error);
+        showError('Failed to load orders: ' + error.message);
+      });
+    }
+    
+    function loadDocumentData() {
+      Logger.log('DOCUMENT_LOAD_STARTED', {});
+      showSkeleton('documents-container', 'table');
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            Logger.log('DOCUMENT_LOAD_SUCCESS', { 
+              count: result.documents.length,
+              loadTime: result.loadTimeMs
+            });
+            
+            documentData = result.documents;
+            displayDocuments(documentData);
+            showToast('Documents loaded successfully', 'success');
+          } else {
+            showDocumentError(result.message);
+          }
+        })
+        .withFailureHandler(function(error) {
+          Logger.error('DOCUMENT_LOAD_FAILED', error);
+          showDocumentError(error.message);
+        })
+        .getDocumentSubmissions();
+    }
+
+    /* ================================================================
+       SECTION 5: UI RENDERING - DASHBOARD
+       ================================================================ */
+    function updateDashboard() {
+      const container = document.getElementById('dashboard-container');
+      
+      const totalOrders = orderData.amazon.length + orderData.target.length;
+      const amazonTotal = orderData.amazon.reduce((sum, o) => 
+        sum + (parseFloat(o.totalOrder) || 0), 0
+      );
+      const targetTotal = orderData.target.reduce((sum, o) => 
+        sum + (parseFloat(o.cartTotal) || 0), 0
+      );
+      
+      // Count statuses
+      const statusCounts = {};
+      const allOrders = [
+        ...orderData.amazon,
+        ...orderData.target
+      ];
+      
+      allOrders.forEach(order => {
+        const status = order.status || 'new-order';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+      });
+      
+      container.innerHTML = `
+        <div class="dashboard">
+          <!-- Total Orders Card -->
+          <div class="stat-card">
+            <div class="stat-header">All Orders</div>
+            <div class="stat-main">
+              <div class="stat-number-group">
+                <div class="stat-number">${totalOrders}</div>
+                <div class="stat-label">Total Orders</div>
+              </div>
+            </div>
+            <div class="stat-details">
+              <div class="stat-detail-row">
+                <span class="stat-detail-label">Amazon:</span>
+                <span class="stat-detail-value">${orderData.amazon.length} orders, $${amazonTotal.toFixed(2)}</span>
+              </div>
+              <div class="stat-detail-row">
+                <span class="stat-detail-label">Target:</span>
+                <span class="stat-detail-value">${orderData.target.length} orders, $${targetTotal.toFixed(2)}</span>
+              </div>
+              <div class="stat-detail-row">
+                <span class="stat-detail-label">Total Spent:</span>
+                <span class="stat-detail-value">$${(amazonTotal + targetTotal).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Status Breakdown Card -->
+          <div class="stat-card">
+            <div class="stat-header">Status Breakdown</div>
+            <div class="status-breakdown-grid">
+              <div>
+                <h4 class="status-column-title">Summary</h4>
+                <table class="status-table">
+                  <tbody>
+                    <tr>
+                      <td>
+                        <span class="status-indicator status-indicator-new-order"></span>
+                        New Order
+                      </td>
+                      <td>${statusCounts['new-order'] || 0}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="status-indicator status-indicator-completed"></span>
+                        Completed
+                      </td>
+                      <td>${statusCounts['completed'] || 0}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="status-indicator status-indicator-cancelled"></span>
+                        Cancelled
+                      </td>
+                      <td>${statusCounts['cancelled'] || 0}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div>
+                <h4 class="status-column-title">In Process</h4>
+                <table class="status-table">
+                  <tbody>
+                    <tr>
+                      <td>
+                        <span class="status-indicator status-indicator-ordered"></span>
+                        Ordered
+                      </td>
+                      <td>${statusCounts['ordered'] || 0}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="status-indicator status-indicator-delivered-to-mailroom"></span>
+                        Delivered
+                      </td>
+                      <td>${statusCounts['delivered-to-mailroom'] || 0}</td>
+                    </tr>
+                    <tr>
+                      <td>
+                        <span class="status-indicator status-indicator-awaiting-club-response"></span>
+                        Awaiting
+                      </td>
+                      <td>${statusCounts['awaiting-club-response'] || 0}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Quick Stats Card -->
+          <div class="stat-card">
+            <div class="stat-header">Quick Stats</div>
+            <div class="stat-details">
+              <div class="stat-detail-row">
+                <span class="stat-detail-label">Avg Order Value:</span>
+                <span class="stat-detail-value">$${totalOrders > 0 ? ((amazonTotal + targetTotal) / totalOrders).toFixed(2) : '0.00'}</span>
+              </div>
+              <div class="stat-detail-row">
+                <span class="stat-detail-label">Active Orders:</span>
+                <span class="stat-detail-value">${(statusCounts['new-order'] || 0) + (statusCounts['ordered'] || 0)}</span>
+              </div>
+              <div class="stat-detail-row">
+                <span class="stat-detail-label">Pending Pickup:</span>
+                <span class="stat-detail-value">${statusCounts['delivered-to-mailroom'] || 0}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+/* ================================================================
+       SECTION 6: UI RENDERING - ORDERS TABLE
+       ================================================================ */
+    
+    /**
+     * Parse event date from various formats
+     * Returns Date object or null
+     */
+    function parseEventDate(dateString) {
+      if (!dateString || dateString === 'N/A' || dateString === '') {
+        return null;
+      }
+      
+      try {
+        // Try parsing various date formats
+        // MM/DD/YYYY, M/D/YYYY, YYYY-MM-DD, etc.
+        const date = new Date(dateString);
+        
+        // Check if date is valid
+        if (isNaN(date.getTime())) {
+          return null;
+        }
+        
+        return date;
+      } catch (e) {
+        return null;
+      }
+    }
+    
+    /**
+     * Display all orders with sorting
+     */
+    function displayOrders() {
+      const allOrders = [
+        ...orderData.amazon.map(o => ({ ...o, platform: 'amazon' })),
+        ...orderData.target.map(o => ({ ...o, platform: 'target' }))
+      ];
+      
+      // ✅ Sort by Event Date (most recent first) then by submission ID
+      allOrders.sort((a, b) => {
+        // Parse event dates
+        const dateA = parseEventDate(a.eventDate);
+        const dateB = parseEventDate(b.eventDate);
+        
+        // If both have valid dates, sort by date (descending - newest first)
+        if (dateA && dateB) {
+          return dateB - dateA;
+        }
+        
+        // If only one has a date, prioritize it
+        if (dateA && !dateB) return -1;
+        if (!dateA && dateB) return 1;
+        
+        // If neither has a date, sort by submission ID (descending)
+        const aId = parseInt(a.submissionId || a.id || 0);
+        const bId = parseInt(b.submissionId || b.id || 0);
+        return bId - aId;
+      });
+      
+      filteredOrders = allOrders;
+      renderOrdersTable();
+    }
+    
+    /**
+     * Render orders table
+     */
+    function renderOrdersTable() {
+      const container = document.getElementById('orders-container');
+      
+      if (filteredOrders.length === 0) {
+        container.innerHTML = `
+          <div class="loading">
+            <div>📭 No orders found</div>
+            <p>Try adjusting your filters or create a new order.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Platform</th>
+              <th>Order ID</th>
+              <th>Organization</th>
+              <th>Event</th>
+              <th>Event Date</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      filteredOrders.slice(0, 100).forEach(order => {
+        const total = order.platform === 'amazon' ? order.totalOrder : order.cartTotal;
+        
+        // ✅ Get actual platform order numbers
+        let orderIdDisplay = 'N/A';
+        if (order.platform === 'amazon') {
+          orderIdDisplay = order.orderNumbers || 'Pending';
+        } else {
+          orderIdDisplay = order.orderConfirmation || 'Pending';
+        }
+        
+        // ✅ Handle multiple order numbers (comma, semicolon, or newline separated)
+        let orderIdHtml = '';
+        if (orderIdDisplay && orderIdDisplay !== 'N/A' && orderIdDisplay !== 'Pending') {
+          // Split by comma, semicolon, or newline
+          const orderIds = orderIdDisplay
+            .split(/[,;\n]/)
+            .map(id => id.trim())
+            .filter(id => id.length > 0);
+          
+          if (orderIds.length > 1) {
+            // Multiple order IDs - stack vertically
+            orderIdHtml = orderIds.map(id => 
+              `<div style="padding: 2px 0; font-size: 12px;">${id}</div>`
+            ).join('');
+          } else {
+            // Single order ID
+            orderIdHtml = orderIds[0] || orderIdDisplay;
+          }
+        } else {
+          // Pending or N/A
+          orderIdHtml = `<span style="color: #f59e0b; font-style: italic;">${orderIdDisplay}</span>`;
+        }
+        
+        const status = order.status || 'new-order';
+        const statusDisplay = status.split('-').map(w => 
+          w.charAt(0).toUpperCase() + w.slice(1)
+        ).join(' ');
+        
+        html += `
+          <tr onclick="showOrderDetails('${order.id}', '${order.platform}')">
+            <td>
+              <span class="platform-badge platform-${order.platform}">
+                ${order.platform.toUpperCase()}
+              </span>
+            </td>
+            <td style="line-height: 1.4; max-width: 200px;">
+              ${orderIdHtml}
+            </td>
+            <td>${order.organization || 'N/A'}</td>
+            <td>${order.eventName || 'N/A'}</td>
+            <td>${order.eventDate || 'N/A'}</td>
+            <td>$${(parseFloat(total) || 0).toFixed(2)}</td>
+            <td>
+              <span class="status-badge status-${status}">
+                ${statusDisplay}
+              </span>
+            </td>
+            <td onclick="event.stopPropagation();">
+              <button class="btn btn-sm btn-primary" 
+                      onclick="editOrderStatus('${order.id}', '${order.platform}')">
+                Edit Status
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `
+          </tbody>
+        </table>
+      `;
+      
+      if (filteredOrders.length > 100) {
+        html += `
+          <div style="padding: 20px; text-align: center; color: #6d7175;">
+            Showing first 100 of ${filteredOrders.length} orders
+          </div>
+        `;
+      }
+      
+      container.innerHTML = html;
+      
+      Logger.log('ORDERS_RENDERED', { count: filteredOrders.length });
+    }
+
+    /* ================================================================
+       SECTION 7: UI RENDERING - DOCUMENTS
+       ================================================================ */
+    function displayDocuments(documents) {
+      const container = document.getElementById('documents-container');
+      
+      if (documents.length === 0) {
+        container.innerHTML = `
+          <div class="loading">
+            <div>📭 No document submissions found</div>
+            <p>Document submissions will appear here once submitted.</p>
+          </div>
+        `;
+        return;
+      }
+      
+      let html = `
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Name</th>
+              <th>Organization</th>
+              <th>Event Name</th>
+              <th>Event Date</th>
+              <th>Email</th>
+              <th>Documents</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      documents.forEach(doc => {
+        const fullName = [doc.firstName, doc.lastName].filter(n => n).join(' ') || 'N/A';
+        
+        // ✅ Count ONLY 4 file types
+        const docFiles = [
+          { field: 'nonPOFile', label: 'Non-PO' },
+          { field: 'signInFile', label: 'Sign-In' },
+          { field: 'invoiceFile', label: 'Invoice' },
+          { field: 'eventFlyerFile', label: 'Flyer' }
+        ];
+        
+        const submittedDocs = docFiles.filter(docType =>
+          doc[docType.field] && doc[docType.field].trim() !== ''
+        );
+        
+        const docCount = submittedDocs.length;
+        const docSummary = submittedDocs.map(d => d.label).join(', ') || 'None';
+        
+        html += `
+          <tr onclick="showDocumentDetails('${doc.id}')">
+            <td>${doc.timestamp || 'N/A'}</td>
+            <td>${fullName}</td>
+            <td>${doc.organization || 'N/A'}</td>
+            <td>${doc.eventName || 'N/A'}</td>
+            <td>${doc.eventDate || 'N/A'}</td>
+            <td>${doc.email || 'N/A'}</td>
+            <td>
+              <strong>${docCount}/4 files</strong>
+              <br><small style="color: #6d7175;">${docSummary}</small>
+            </td>
+            <td onclick="event.stopPropagation();">
+              <button class="btn btn-sm btn-primary" 
+                      onclick="showDocumentDetails('${doc.id}')">
+                View
+              </button>
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `
+          </tbody>
+        </table>
+      `;
+      
+      container.innerHTML = html;
+      Logger.log('DOCUMENTS_RENDERED', { count: documents.length });
+    }
+    /* ================================================================
+       SECTION 8: MODALS & INTERACTIONS - COMPLETE
+       ================================================================ */
+ /**
+     * Show order details modal
+     */
+    function showOrderDetails(orderId, platform) {
+      Logger.log('ORDER_DETAILS_OPENED', { orderId, platform });
+      
+      const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
+      const order = orders.find(o => o.id == orderId || String(o.id) === String(orderId));
+      
+      if (!order) {
+        console.error('Order lookup failed:', { 
+          orderId, 
+          platform, 
+          availableIds: orders.map(o => o.id).slice(0, 5) 
+        });
+        showToast('Order not found', 'error');
+        return;
+      }
+      
+      const modal = document.getElementById('orderModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+      
+      modalTitle.textContent = `${platform.toUpperCase()} Order Details`;
+      
+      const status = order.status || 'new-order';
+      const statusDisplay = status.split('-').map(w => 
+        w.charAt(0).toUpperCase() + w.slice(1)
+      ).join(' ');
+      
+      let content = `
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin-bottom: 12px; color: #212b36;">📋 Order Information</h3>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div>
+              <strong>Organization:</strong><br>
+              ${order.organization || 'N/A'}
+            </div>
+            <div>
+              <strong>Event Name:</strong><br>
+              ${order.eventName || 'N/A'}
+            </div>
+            <div>
+              <strong>Event Date:</strong><br>
+              ${order.eventDate || 'N/A'}
+            </div>
+            <div>
+              <strong>Status:</strong><br>
+              <span class="status-badge status-${status}">${statusDisplay}</span>
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin-bottom: 12px; color: #212b36;">👤 Contact Information</h3>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div>
+              <strong>Pickup Person:</strong><br>
+              ${order.pickupPerson || 'N/A'}
+            </div>
+            <div>
+              <strong>Email:</strong><br>
+              ${order.pickupEmail || 'N/A'}
+            </div>
+            <div>
+              <strong>Phone:</strong><br>
+              ${order.pickupPhone || 'N/A'}
+            </div>
+          </div>
+        </div>
+      `;
+      
+      // ✅ Items Section (for both Amazon and Target)
+      if (order.items && order.items.length > 0) {
+        content += `
+          <div style="margin-bottom: 20px;">
+            <h3 style="margin-bottom: 12px; color: #212b36;">🛒 Order Items</h3>
+            <div style="background: #f9fafb; border-radius: 8px; padding: 12px;">
+              <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                  <tr style="border-bottom: 2px solid #e1e3e5;">
+                    <th style="text-align: left; padding: 8px; font-size: 12px; color: #6d7175; font-weight: 600;">ITEM</th>
+                    <th style="text-align: center; padding: 8px; font-size: 12px; color: #6d7175; font-weight: 600; width: 80px;">QTY</th>
+                  </tr>
+                </thead>
+                <tbody>
+        `;
+        
+        order.items.forEach((item, index) => {
+          content += `
+            <tr style="border-bottom: 1px solid #e1e3e5;">
+              <td style="padding: 10px 8px; font-size: 14px;">${item.name}</td>
+              <td style="padding: 10px 8px; text-align: center; font-weight: 600; font-size: 14px;">${item.quantity}</td>
+            </tr>
+          `;
+        });
+        
+        content += `
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      }
+      
+      // Platform-specific details
+      content += `
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin-bottom: 12px; color: #212b36;">${platform === 'amazon' ? '📦 Amazon' : '🎯 Target'} Details</h3>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+      `;
+      
+      if (platform === 'amazon') {
+        // Amazon order numbers
+        const orderNumbers = order.orderNumbers || 'Pending';
+        let orderNumbersDisplay = orderNumbers;
+        
+        if (orderNumbers && orderNumbers !== 'Pending' && orderNumbers !== 'N/A') {
+          const numbers = orderNumbers
+            .split(/[,;\n]/)
+            .map(n => n.trim())
+            .filter(n => n.length > 0);
+          
+          if (numbers.length > 1) {
+            orderNumbersDisplay = numbers.map(n => 
+              `<div style="padding: 2px 0; border-bottom: 1px solid #f1f2f4;">${n}</div>`
+            ).join('');
+          }
+        }
+        
+        content += `
+          <div style="grid-column: 1 / -1;">
+            <strong>Amazon Order Numbers:</strong><br>
+            <div style="margin-top: 8px; padding: 8px; background: #f9fafb; border-radius: 6px;">
+              ${orderNumbersDisplay}
+            </div>
+          </div>
+          <div>
+            <strong>Total Amount:</strong><br>
+            $${(order.totalOrder || 0).toFixed(2)}
+          </div>
+          <div>
+            <strong>Submission ID:</strong><br>
+            ${order.submissionId || order.historicalId || 'N/A'}
+          </div>
+          ${order.wishlistLink ? `
+          <div style="grid-column: 1 / -1;">
+            <strong>Wishlist:</strong><br>
+            <a href="${order.wishlistLink}" target="_blank" style="color: #005bd3; text-decoration: underline;">
+              ${order.wishlistLink}
+            </a>
+          </div>
+          ` : ''}
+        `;
+      } else {
+        // Target order confirmation
+        const orderConfirmation = order.orderConfirmation || 'Pending';
+        let confirmationDisplay = orderConfirmation;
+        
+        if (orderConfirmation && orderConfirmation !== 'Pending' && orderConfirmation !== 'N/A') {
+          const numbers = orderConfirmation
+            .split(/[,;\n]/)
+            .map(n => n.trim())
+            .filter(n => n.length > 0);
+          
+          if (numbers.length > 1) {
+            confirmationDisplay = numbers.map(n => 
+              `<div style="padding: 2px 0; border-bottom: 1px solid #f1f2f4;">${n}</div>`
+            ).join('');
+          }
+        }
+        
+        content += `
+          <div style="grid-column: 1 / -1;">
+            <strong>Target Order Confirmation:</strong><br>
+            <div style="margin-top: 8px; padding: 8px; background: #f9fafb; border-radius: 6px;">
+              ${confirmationDisplay}
+            </div>
+          </div>
+          <div>
+            <strong>Cart Total:</strong><br>
+            $${(order.cartTotal || 0).toFixed(2)}
+          </div>
+          <div>
+            <strong>Submission ID:</strong><br>
+            ${order.submissionId || order.historicalId || 'N/A'}
+          </div>
+        `;
+      }
+      
+      // Backup items if they exist
+      if (order.backupItems && order.backupItems !== 'N/A' && order.backupItems.trim() !== '') {
+        content += `
+          <div style="grid-column: 1 / -1;">
+            <strong>Backup Items:</strong><br>
+            <div style="margin-top: 8px; padding: 8px; background: #fff3cd; border-radius: 6px; color: #856404;">
+              ${order.backupItems}
+            </div>
+          </div>
+        `;
+      }
+      
+      // Form notes if they exist
+      if (order.formNotes && order.formNotes !== 'N/A' && order.formNotes.trim() !== '') {
+        content += `
+          <div style="grid-column: 1 / -1;">
+            <strong>Submitter Notes:</strong><br>
+            <div style="margin-top: 8px; padding: 8px; background: #e0f2fe; border-radius: 6px; color: #075985;">
+              ${order.formNotes}
+            </div>
+          </div>
+        `;
+      }
+      
+      content += `
+          </div>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid #e1e3e5;">
+          <button class="btn btn-secondary" onclick="closeOrderModal()">Close</button>
+          <button class="btn btn-primary" onclick="editOrderStatus('${order.id}', '${platform}')">
+            Change Status
+          </button>
+        </div>
+      `;
+      
+      modalBody.innerHTML = content;
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    
+    /**
+     * Show document details modal
+     */
+    function showDocumentDetails(docId) {
+      Logger.log('DOCUMENT_DETAILS_OPENED', { docId });
+      
+      const doc = documentData.find(d => d.id == docId || String(d.id) === String(docId));
+      
+      if (!doc) {
+        showToast('Document not found', 'error');
+        return;
+      }
+      
+      const modal = document.getElementById('orderModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+      
+      modalTitle.textContent = 'Document Submission Details';
+      
+      const docTypes = [
+        { label: 'Non-PO File', field: 'nonPOFile' },
+        { label: 'Sign-In File', field: 'signInFile' },
+        { label: 'Invoice File', field: 'invoiceFile' },
+        { label: 'Event Flyer', field: 'eventFlyerFile' }
+      ];
+      
+      let filesHTML = '';
+      docTypes.forEach(docType => {
+        const fileLink = doc[docType.field];
+        const hasFile = fileLink && fileLink.trim() !== '';
+        
+        filesHTML += `
+          <tr>
+            <td><strong>${docType.label}</strong></td>
+            <td>
+              ${hasFile ? 
+                `<span class="status-badge status-completed">✓ Submitted</span>` : 
+                `<span class="status-badge status-cancelled">✗ Not Submitted</span>`
+              }
+            </td>
+            <td>
+              ${hasFile ? 
+                `<a href="${fileLink}" target="_blank" class="btn btn-sm btn-primary">Open File</a>` : 
+                '-'
+              }
+            </td>
+          </tr>
+        `;
+      });
+      
+      const content = `
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin-bottom: 12px;">📋 Submission Information</h3>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+            <div>
+              <strong>Name:</strong><br>
+              ${doc.firstName || ''} ${doc.lastName || ''}
+            </div>
+            <div>
+              <strong>Email:</strong><br>
+              ${doc.email || 'N/A'}
+            </div>
+            <div>
+              <strong>Organization:</strong><br>
+              ${doc.organization || 'N/A'}
+            </div>
+            <div>
+              <strong>Event Date:</strong><br>
+              ${doc.eventDate || 'N/A'}
+            </div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <h3 style="margin-bottom: 12px;">📄 Submitted Documents</h3>
+          <table class="orders-table">
+            <thead>
+              <tr>
+                <th>Document Type</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${filesHTML}
+            </tbody>
+          </table>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid #e1e3e5;">
+          <button class="btn btn-secondary" onclick="closeOrderModal()">Close</button>
+        </div>
+      `;
+      
+      modalBody.innerHTML = content;
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    
+    /**
+     * Edit order status modal
+     */
+    function editOrderStatus(orderId, platform) {
+      Logger.log('ORDER_STATUS_EDIT_STARTED', { orderId, platform });
+      
+      const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
+      const order = orders.find(o => o.id == orderId || String(o.id) === String(orderId));
+      
+      if (!order) {
+        console.error('Order lookup failed for status edit:', { orderId, platform });
+        showToast('Order not found', 'error');
+        return;
+      }
+      
+      const currentStatus = order.status || 'new-order';
+      
+      const statusOptions = [
+        { value: 'new-order', label: 'New Order' },
+        { value: 'ordered', label: 'Ordered' },
+        { value: 'delivered-to-mailroom', label: 'Delivered to Mailroom' },
+        { value: 'completed', label: 'Completed' },
+        { value: 'awaiting-club-response', label: 'Awaiting Club Response' },
+        { value: 'cancelled', label: 'Cancelled' }
+      ];
+      
+      let optionsHTML = '';
+      statusOptions.forEach(opt => {
+        optionsHTML += `
+          <option value="${opt.value}" ${currentStatus === opt.value ? 'selected' : ''}>
+            ${opt.label}
+          </option>
+        `;
+      });
+      
+      const modal = document.getElementById('orderModal');
+      const modalTitle = document.getElementById('modalTitle');
+      const modalBody = document.getElementById('modalBody');
+      
+      modalTitle.textContent = 'Change Order Status';
+      
+      modalBody.innerHTML = `
+        <div style="margin-bottom: 20px;">
+          <p style="margin-bottom: 12px;">
+            <strong>Order:</strong> ${order.organization} - ${order.eventName}
+          </p>
+          <p style="margin-bottom: 20px; color: #6d7175;">
+            Order ID: ${orderId}
+          </p>
+          
+          <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+            Select New Status:
+          </label>
+          <select id="newStatusSelect" class="filter-select" style="width: 100%;">
+            ${optionsHTML}
+          </select>
+        </div>
+        
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn btn-secondary" onclick="closeOrderModal()">Cancel</button>
+          <button class="btn btn-primary" onclick="saveStatusChange('${orderId}', '${platform}')">
+            Update Status
+          </button>
+        </div>
+      `;
+      
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    
+    /**
+     * Save status change
+     */
+    function saveStatusChange(orderId, platform) {
+      const newStatus = document.getElementById('newStatusSelect').value;
+      
+      if (!newStatus) {
+        showToast('Please select a status', 'error');
+        return;
+      }
+      
+      Logger.log('ORDER_STATUS_SAVE_STARTED', { orderId, platform, newStatus });
+      
+      // Get the button that was clicked
+      const saveBtn = event ? event.target : document.querySelector('#orderModal .btn-primary');
+      const originalText = saveBtn.textContent;
+      saveBtn.disabled = true;
+      saveBtn.textContent = 'Updating...';
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            Logger.log('ORDER_STATUS_SAVE_SUCCESS', { orderId, newStatus });
+            
+            // Update local data
+            const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
+            const order = orders.find(o => o.id == orderId || String(o.id) === String(orderId));
+            if (order) {
+              order.status = newStatus;
+            }
+            
+            closeOrderModal();
+            renderOrdersTable();
+            updateDashboard();
+            showToast('Status updated successfully', 'success');
+          } else {
+            Logger.error('ORDER_STATUS_SAVE_FAILED', result.message);
+            saveBtn.disabled = false;
+            saveBtn.textContent = originalText;
+            showToast('Failed to update status: ' + result.message, 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          Logger.error('ORDER_STATUS_SAVE_ERROR', error);
+          saveBtn.disabled = false;
+          saveBtn.textContent = originalText;
+          showToast('Error updating status', 'error');
+        })
+        .updateOrderStatus(orderId, platform, newStatus);
+    }
+    
+    /**
+     * Close modal - COMPLETE FIX
+     */
+    function closeOrderModal() {
+      const modal = document.getElementById('orderModal');
+      
+      if (!modal) {
+        console.error('Modal element not found');
+        return;
+      }
+      
+      // Hide modal
+      modal.style.display = 'none';
+      
+      // Re-enable body scroll
+      document.body.style.overflow = 'auto';
+      
+      // Clear modal content
+      const modalBody = document.getElementById('modalBody');
+      const modalTitle = document.getElementById('modalTitle');
+      
+      if (modalBody) modalBody.innerHTML = '';
+      if (modalTitle) modalTitle.textContent = '';
+      
+      Logger.log('MODAL_CLOSED', {});
+    }
+    /* ================================================================
+       SECTION 9: FILTERS & SEARCH
+       ================================================================ */
+    function applyFilters() {
+      Logger.log('FILTERS_APPLIED', {});
+      
+      const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+      const platformFilter = document.getElementById('platform-filter').value;
+      const statusFilter = document.getElementById('status-filter').value;
+      
+      const allOrders = [
+        ...orderData.amazon.map(o => ({ ...o, platform: 'amazon' })),
+        ...orderData.target.map(o => ({ ...o, platform: 'target' }))
+      ];
+      
+      filteredOrders = allOrders.filter(order => {
+        // Search filter
+        const searchFields = [
+          order.organization,
+          order.eventName,
+          order.pickupPerson,
+          order.pickupEmail,
+          order.orderNumbers,
+          order.orderConfirmation
+        ].filter(String).join(' ').toLowerCase();
+        
+        const matchesSearch = !searchTerm || searchFields.includes(searchTerm);
+        
+        // Platform filter
+        const matchesPlatform = !platformFilter || order.platform === platformFilter;
+        
+        // Status filter
+        const matchesStatus = !statusFilter || order.status === statusFilter;
+        
+        return matchesSearch && matchesPlatform && matchesStatus;
+      });
+      
+      // Sort by submission ID descending
+      filteredOrders.sort((a, b) => {
+        const aId = parseInt(a.submissionId || a.id || 0);
+        const bId = parseInt(b.submissionId || b.id || 0);
+        return bId - aId;
+      });
+      
+      renderOrdersTable();
+    }
+    
+    function clearFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('platform-filter').value = '';
+      document.getElementById('status-filter').value = '';
+      
+      displayOrders();
+      Logger.log('FILTERS_CLEARED', {});
+    }
+
+    /* ================================================================
+       SECTION 10: UTILITY FUNCTIONS
+       ================================================================ */
+    function showToast(message, type = 'info') {
+      const toast = document.createElement('div');
+      toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'error' ? '#ef4444' : '#3b82f6'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 9999;
+        animation: slideIn 0.3s ease-out;
+        font-size: 14px;
+        font-weight: 500;
+      `;
+      toast.textContent = message;
+      
+      document.body.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideOut 0.3s ease-in';
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+      
+      Logger.log('TOAST_SHOWN', { message, type });
+    }
+    
+    function showError(message) {
+      document.getElementById('orders-container').innerHTML = `
+        <div class="error">
+          <h3>Error Loading Orders</h3>
+          <p>${message}</p>
+          <button class="btn btn-primary" onclick="loadOrderData()" style="margin-top: 20px;">
+            Try Again
+          </button>
+        </div>
+      `;
+    }
+    
+    function showDocumentError(message) {
+      document.getElementById('documents-container').innerHTML = `
+        <div class="error">
+          <h3>Error Loading Documents</h3>
+          <p>${message}</p>
+          <button class="btn btn-primary" onclick="loadDocumentData()" style="margin-top: 20px;">
+            Try Again
+          </button>
+        </div>
+      `;
+    }
+    
+    function testConnection() {
+      document.getElementById('connection-status').innerHTML = '<div class="loading">Testing connection...</div>';
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            document.getElementById('connection-status').innerHTML = `
+              <div class="success" style="position: static; background: #d1fae5; color: #065f46; padding: 16px; border-radius: 8px;">
+                <strong>✅ Connection Successful!</strong><br>
+                <p style="margin-top: 8px;">Spreadsheet: ${result.spreadsheetName}</p>
+                <p>Available Sheets: ${result.availableSheets.join(', ')}</p>
+                <a href="${result.url}" target="_blank" style="color: #065f46; font-weight: 600;">View Spreadsheet</a>
+              </div>
+            `;
+          } else {
+            document.getElementById('connection-status').innerHTML = `
+              <div class="error">
+                <strong>❌ Connection Failed</strong><br>
+                ${result.message}
+              </div>
+            `;
+          }
+        })
+        .withFailureHandler(function(error) {
+          document.getElementById('connection-status').innerHTML = `
+            <div class="error">
+              <strong>❌ Connection Error</strong><br>
+              ${error.message}
+            </div>
+          `;
+        })
+        .testSpreadsheetConnection();
+    }
+    
+    function exportData() {
+      Logger.log('EXPORT_STARTED', { count: filteredOrders.length });
+      
+      const headers = [
+        'Platform', 'Order ID', 'Organization', 'Event Name', 'Event Date',
+        'Pickup Person', 'Pickup Email', 'Total', 'Status', 'Timestamp'
+      ];
+      
+      let csvContent = headers.join(',') + '\n';
+      
+      filteredOrders.forEach(order => {
+        const total = order.platform === 'amazon' ? order.totalOrder : order.cartTotal;
+        const orderId = order.platform === 'amazon' ? order.orderNumbers : order.orderConfirmation;
+        
+        const row = [
+          order.platform,
+          `"${orderId || 'N/A'}"`,
+          `"${order.organization || 'N/A'}"`,
+          `"${order.eventName || 'N/A'}"`,
+          `"${order.eventDate || 'N/A'}"`,
+          `"${order.pickupPerson || 'N/A'}"`,
+          `"${order.pickupEmail || 'N/A'}"`,
+          (total || 0),
+          order.status || 'new-order',
+          `"${order.timestamp || 'N/A'}"`
+        ];
+        
+        csvContent += row.join(',') + '\n';
+      });
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `orders_export_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('Export complete', 'success');
+      Logger.log('EXPORT_COMPLETE', { count: filteredOrders.length });
+    }
+    
+    function exportDocumentData() {
+      Logger.log('DOCUMENT_EXPORT_STARTED', { count: documentData.length });
+      
+      const headers = [
+        'Timestamp', 'First Name', 'Last Name', 'Email', 'Organization',
+        'Event Name', 'Event Date', 'Non-PO File', 'Sign-In File',
+        'Invoice File', 'Event Flyer File'
+      ];
+      
+      let csvContent = headers.join(',') + '\n';
+      
+      documentData.forEach(doc => {
+        const row = [
+          `"${doc.timestamp || 'N/A'}"`,
+          `"${doc.firstName || 'N/A'}"`,
+          `"${doc.lastName || 'N/A'}"`,
+          `"${doc.email || 'N/A'}"`,
+          `"${doc.organization || 'N/A'}"`,
+          `"${doc.eventName || 'N/A'}"`,
+          `"${doc.eventDate || 'N/A'}"`,
+          `"${doc.nonPOFile || 'N/A'}"`,
+          `"${doc.signInFile || 'N/A'}"`,
+          `"${doc.invoiceFile || 'N/A'}"`,
+          `"${doc.eventFlyerFile || 'N/A'}"`
+        ];
+        
+        csvContent += row.join(',') + '\n';
+      });
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      link.setAttribute('href', url);
+      link.setAttribute('download', `document_submissions_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      showToast('Export complete', 'success');
+      Logger.log('DOCUMENT_EXPORT_COMPLETE', { count: documentData.length });
+    }
+
+    /* ================================================================
+       SECTION 11: INITIALIZATION
+       ================================================================ */
+    document.addEventListener('DOMContentLoaded', function() {
+      Logger.log('APP_STARTED', { timestamp: new Date().toISOString() });
+      
+      // Setup tab switching
+      document.querySelectorAll('.nav-tab').forEach(tab => {
+        tab.addEventListener('click', function() {
+          const tabName = this.dataset.tab;
+          Logger.log('TAB_SWITCHED', { tab: tabName });
+          
+          // Update active tab
+          document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+          this.classList.add('active');
+          
+          // Show corresponding content
+          document.querySelectorAll('.tab-content').forEach(content => {
+            content.classList.remove('active');
+          });
+          document.getElementById(`${tabName}-tab`).classList.add('active');
+          
+          // Load data if needed
+          if (tabName === 'documents') {
+            loadDocumentData();
+          } else if (tabName === 'setup') {
+            testConnection();
+          }
+        });
+      });
+      
+      // ✅ ADD: Modal backdrop click handler
+      const modal = document.getElementById('orderModal');
+      if (modal) {
+        modal.addEventListener('click', function(event) {
+          // Only close if clicking the backdrop (not the content)
+          if (event.target === modal) {
+            closeOrderModal();
+          }
+        });
+        
+        // Prevent clicks inside modal content from closing it
+        const modalContent = modal.querySelector('.modal-content');
+        if (modalContent) {
+          modalContent.addEventListener('click', function(event) {
+            event.stopPropagation();
+          });
+        }
+      }
+      
+      // ✅ ADD: Escape key handler
+      document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+          const modal = document.getElementById('orderModal');
+          if (modal && modal.style.display === 'block') {
+            closeOrderModal();
+          }
+        }
+      });
+      
+      // Add Enter key support for search
+      document.getElementById('search-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          applyFilters();
+        }
+      });
+      
+      // Initial data load
+      loadOrderData();
+    });
+    
+    // Expose logger to console for debugging
+    window.Logger = Logger;
+    window.viewLogs = () => Logger.viewLogs();
+    window.clearLogs = () => Logger.clearLogs();
+    
+    console.log('%c📊 Order Management System v3', 'font-size: 16px; font-weight: bold; color: #005bd3;');
+    console.log('%cDebug commands:', 'font-weight: bold;');
+    console.log('  viewLogs()  - View all frontend logs');
+    console.log('  clearLogs() - Clear frontend logs');
+    console.log('  Logger      - Access logger object');
+    
+  </script>
+</body>
+</html>
