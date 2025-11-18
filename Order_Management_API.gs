@@ -1,7 +1,13 @@
 /**
  * ============================================
- * ORDER MANAGEMENT API - V3 with Logging
+ * ORDER MANAGEMENT API - V3 with New Features
  * Backend API for web-based Order Management UI
+ * 
+ * NEW FEATURES:
+ * - Target items display fix
+ * - Manual order creation
+ * - Manual document submission
+ * - Comments viewing and editing
  * ============================================
  */
 
@@ -92,6 +98,7 @@ function getAllOrders() {
     };
   }
 }
+
 /**
  * Process Amazon orders with frontend-ready mappings
  * @param {Array} data - Raw sheet data
@@ -131,7 +138,7 @@ function processAmazonOrdersOptimized(data) {
     confirmationNumber: headers.indexOf('Confirmation_Number')
   };
   
-  // ✅ Find all item columns dynamically
+  // Find all item columns dynamically
   const itemColumns = [];
   const quantityColumns = [];
   
@@ -164,7 +171,7 @@ function processAmazonOrdersOptimized(data) {
       continue;
     }
     
-    // ✅ Extract items
+    // Extract items
     const items = [];
     itemColumns.forEach((itemCol, idx) => {
       const itemName = row[itemCol.index];
@@ -211,7 +218,7 @@ function processAmazonOrdersOptimized(data) {
       backupItems: formatValue(row[colIndices.backupItems]),
       formNotes: formatValue(row[colIndices.formNotes]),
       
-      // ✅ Items array
+      // Items array
       items: items,
       
       // Staff fields
@@ -232,7 +239,7 @@ function processAmazonOrdersOptimized(data) {
 }
 
 /**
- * Process Target orders with frontend-ready mappings
+ * Process Target orders with frontend-ready mappings - FIXED for item extraction
  * @param {Array} data - Raw sheet data
  * @returns {Array} Processed orders
  */
@@ -266,29 +273,75 @@ function processTargetOrdersOptimized(data) {
     confirmationNumber: headers.indexOf('Confirmation_Number')
   };
   
-  // ✅ Find all item columns dynamically (Item_1, Item_2, Item_3, etc.)
-  const itemColumns = [];
-  const quantityColumns = [];
+  // ✅ FIX: Find all item URL and quantity columns dynamically
+  const itemUrlColumns = [];
+  const itemQuantityColumns = [];
   
   headers.forEach((header, index) => {
-    const headerStr = String(header).toLowerCase();
+    const headerStr = String(header).toLowerCase().replace(/[_\s]/g, '');
     
-    // Match Item_1, Item_2, etc.
-    if (headerStr.match(/^item[_\s]*\d+$/)) {
-      const itemNum = parseInt(headerStr.match(/\d+/)[0]);
-      itemColumns.push({ index: index, number: itemNum });
+    // Match patterns like: First_Item_Url, Second_Item_Url, Third_Item_Url, etc.
+    // OR Item_1_Url, Item_2_Url, etc.
+    if (headerStr.includes('item') && headerStr.includes('url')) {
+      // Try to extract order number from header
+      let itemNum = 0;
+      
+      // Check for written numbers (First, Second, Third, etc.)
+      const writtenNumbers = {
+        'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5,
+        'sixth': 6, 'seventh': 7, 'eighth': 8, 'ninth': 9, 'tenth': 10
+      };
+      
+      for (const [word, num] of Object.entries(writtenNumbers)) {
+        if (headerStr.includes(word)) {
+          itemNum = num;
+          break;
+        }
+      }
+      
+      // If no written number, try to extract numeric value
+      if (itemNum === 0) {
+        const numMatch = headerStr.match(/\d+/);
+        if (numMatch) {
+          itemNum = parseInt(numMatch[0]);
+        }
+      }
+      
+      itemUrlColumns.push({ index: index, number: itemNum || itemUrlColumns.length + 1 });
     }
     
-    // Match Item_1_Quantity, Quantity_1, etc.
-    if (headerStr.match(/quantity[_\s]*\d+/) || headerStr.match(/item[_\s]*\d+[_\s]*quantity/)) {
-      const qtyNum = parseInt(headerStr.match(/\d+/)[0]);
-      quantityColumns.push({ index: index, number: qtyNum });
+    // Match quantity columns: First_Item_Quantity, Item_1_Quantity, etc.
+    if (headerStr.includes('item') && headerStr.includes('quantity')) {
+      let itemNum = 0;
+      
+      const writtenNumbers = {
+        'first': 1, 'second': 2, 'third': 3, 'fourth': 4, 'fifth': 5,
+        'sixth': 6, 'seventh': 7, 'eighth': 8, 'ninth': 9, 'tenth': 10
+      };
+      
+      for (const [word, num] of Object.entries(writtenNumbers)) {
+        if (headerStr.includes(word)) {
+          itemNum = num;
+          break;
+        }
+      }
+      
+      if (itemNum === 0) {
+        const numMatch = headerStr.match(/\d+/);
+        if (numMatch) {
+          itemNum = parseInt(numMatch[0]);
+        }
+      }
+      
+      itemQuantityColumns.push({ index: index, number: itemNum || itemQuantityColumns.length + 1 });
     }
   });
   
   // Sort by item number
-  itemColumns.sort((a, b) => a.number - b.number);
-  quantityColumns.sort((a, b) => a.number - b.number);
+  itemUrlColumns.sort((a, b) => a.number - b.number);
+  itemQuantityColumns.sort((a, b) => a.number - b.number);
+  
+  console.log(`Found ${itemUrlColumns.length} item URL columns and ${itemQuantityColumns.length} quantity columns`);
   
   // Process each row
   for (let i = 1; i < data.length; i++) {
@@ -299,17 +352,18 @@ function processTargetOrdersOptimized(data) {
       continue;
     }
     
-    // ✅ Extract items
+    // ✅ Extract items with URLs and quantities
     const items = [];
-    itemColumns.forEach((itemCol, idx) => {
-      const itemName = row[itemCol.index];
-      const qtyCol = quantityColumns[idx];
+    itemUrlColumns.forEach((urlCol, idx) => {
+      const itemUrl = row[urlCol.index];
+      const qtyCol = itemQuantityColumns.find(q => q.number === urlCol.number);
       const quantity = qtyCol ? row[qtyCol.index] : '';
       
-      if (itemName && String(itemName).trim() !== '') {
+      if (itemUrl && String(itemUrl).trim() !== '') {
         items.push({
-          name: String(itemName).trim(),
-          quantity: quantity ? String(quantity).trim() : '1'
+          name: String(itemUrl).trim(), // Use URL as name for Target
+          quantity: quantity ? String(quantity).trim() : '1',
+          url: String(itemUrl).trim()
         });
       }
     });
@@ -343,7 +397,7 @@ function processTargetOrdersOptimized(data) {
       backupItems: formatValue(row[colIndices.backupItems]),
       formNotes: formatValue(row[colIndices.formNotes]),
       
-      // ✅ Items array
+      // ✅ Items array with URLs
       items: items,
       
       // Staff fields
@@ -363,7 +417,7 @@ function processTargetOrdersOptimized(data) {
 }
 
 /**
- * Get document submissions - FIXED for 4 files only
+ * Get document submissions
  * @returns {Object} Document submissions data
  */
 function getDocumentSubmissions() {
@@ -410,7 +464,6 @@ function getDocumentSubmissions() {
       signInFile: headers.indexOf('signIn_FileLink'),
       invoiceFile: headers.indexOf('invoice_FileLink'),
       eventFlyerFile: headers.indexOf('eventFlyer_FileLink'),
-      // ✅ REMOVED: officialReceiptFile - only 4 files now
       confirmationNumber: headers.indexOf('Confirmation_Number'),
       notes: headers.indexOf('Form Submitter Notes'),
       comments: headers.indexOf('Comments')
@@ -449,7 +502,6 @@ function getDocumentSubmissions() {
         signInFile: formatValue(row[colIndices.signInFile]),
         invoiceFile: formatValue(row[colIndices.invoiceFile]),
         eventFlyerFile: formatValue(row[colIndices.eventFlyerFile]),
-        // ✅ NO officialReceiptFile
         
         // Metadata
         confirmationNumber: formatValue(row[colIndices.confirmationNumber]),
@@ -541,42 +593,6 @@ function normalizeStatusForFrontend(status) {
   
   return mapping[s] || s.replace(/\s+/g, '-');
 }
-/**
- * TEST FUNCTION - Run this to verify the fix works
- * This will log the first few documents to verify field mapping
- */
-function testDocumentSubmissionsDebug() {
-  console.log('🧪 Testing getDocumentSubmissions()...');
-  console.log('═══════════════════════════════════════');
-  
-  const result = getDocumentSubmissions();
-  
-  console.log('\n📊 Result:');
-  console.log('Success:', result.success);
-  console.log('Message:', result.message);
-  console.log('Document count:', result.documents.length);
-  
-  if (result.documents.length > 0) {
-    console.log('\n📄 First document sample:');
-    const firstDoc = result.documents[0];
-    console.log(JSON.stringify(firstDoc, null, 2));
-    
-    console.log('\n✅ Field Verification:');
-    console.log('- ID:', firstDoc.id ? '✓' : '✗');
-    console.log('- Timestamp:', firstDoc.timestamp ? '✓' : '✗');
-    console.log('- First Name:', firstDoc.firstName ? '✓' : '✗');
-    console.log('- Last Name:', firstDoc.lastName ? '✓' : '✗');
-    console.log('- Email:', firstDoc.email ? '✓' : '✗');
-    console.log('- Organization:', firstDoc.organization ? '✓' : '✗');
-    console.log('- Event Name:', firstDoc.eventName ? '✓' : '✗');
-    console.log('- nonPO File:', firstDoc.nonPOFile ? '✓' : '✗');
-  }
-  
-  console.log('\n═══════════════════════════════════════');
-  console.log('🎉 Test complete!');
-  
-  return result;
-}
 
 /**
  * Get club names and employee names
@@ -636,87 +652,6 @@ function getNamesData() {
       message: error.toString()
     };
   }
-}
-
-/**
- * Get dashboard totals and statistics
- * @returns {Object} Dashboard data
- */
-function getOrderTotals() {
-  try {
-    const spreadsheet = getCachedSpreadsheet();
-    
-    // Amazon Orders
-    const amazonSheet = spreadsheet.getSheetByName('AmazonOrders');
-    const amazonData = amazonSheet ? amazonSheet.getDataRange().getValues() : [[]];
-    const amazonHeaders = amazonData[0];
-    const amazonRows = amazonData.slice(1).filter(r => r.join("").trim() !== "");
-    const amazonCounts = countStatuses(amazonRows, amazonHeaders);
-    const amazonSpent = calculateTotalSpent(amazonRows, amazonHeaders, 'Total_Order');
-    
-    // Target Orders
-    const targetSheet = spreadsheet.getSheetByName('TargetOrders');
-    const targetData = targetSheet ? targetSheet.getDataRange().getValues() : [[]];
-    const targetHeaders = targetData[0];
-    const targetRows = targetData.slice(1).filter(r => r.join("").trim() !== "");
-    const targetCounts = countStatuses(targetRows, targetHeaders);
-    const targetSpent = calculateTotalSpent(targetRows, targetHeaders, 'Cart_Total');
-    
-    // Totals
-    const totalOrders = amazonRows.length + targetRows.length;
-    const allKeys = new Set([...Object.keys(amazonCounts), ...Object.keys(targetCounts)]);
-    const totalCounts = {};
-    allKeys.forEach(k => {
-      totalCounts[k] = (amazonCounts[k] || 0) + (targetCounts[k] || 0);
-    });
-    
-    return {
-      success: true,
-      amazonOrders: amazonRows.length,
-      targetOrders: targetRows.length,
-      totalOrders: totalOrders,
-      amazonSpent: amazonSpent,
-      targetSpent: targetSpent,
-      totalSpent: amazonSpent + targetSpent,
-      statuses: {
-        amazon: amazonCounts,
-        target: targetCounts,
-        total: totalCounts
-      }
-    };
-  } catch (error) {
-    console.error('Error getting order totals:', error);
-    return { success: false, message: error.message };
-  }
-}
-
-/**
- * Count statuses in order rows
- */
-function countStatuses(rows, headers) {
-  const statusIndex = headers.indexOf("Order_Status");
-  const counts = {};
-  
-  rows.forEach(row => {
-    let raw = (statusIndex !== -1) ? row[statusIndex] : null;
-    const status = normalizeStatusForFrontend(raw);
-    counts[status] = (counts[status] || 0) + 1;
-  });
-  
-  return counts;
-}
-
-/**
- * Calculate total spent
- */
-function calculateTotalSpent(rows, headers, columnName) {
-  const columnIndex = headers.indexOf(columnName);
-  if (columnIndex === -1) return 0;
-  
-  return rows.reduce((sum, row) => {
-    const value = parseMoneyValue(row[columnIndex]);
-    return sum + value;
-  }, 0);
 }
 
 // ========================================
@@ -821,11 +756,15 @@ function updateOrderStatus(orderId, platform, newStatus) {
 }
 
 /**
- * Update order details with logging
+ * ✅ NEW: Update order comments
+ * @param {string} orderId - Order ID
+ * @param {string} platform - Platform (amazon/target)
+ * @param {string} newComments - New comments text
+ * @returns {Object} Update result
  */
-function updateOrderDetails(orderId, platform, updatedData) {
+function updateOrderComments(orderId, platform, newComments) {
   try {
-    console.log(`Updating ${platform} order ${orderId}:`, Object.keys(updatedData));
+    console.log(`Updating comments: ID=${orderId}, Platform=${platform}`);
     
     const sheetMap = {
       'amazon': 'AmazonOrders',
@@ -833,6 +772,10 @@ function updateOrderDetails(orderId, platform, updatedData) {
     };
     
     const sheetName = sheetMap[platform];
+    if (!sheetName) {
+      throw new Error(`Invalid platform: ${platform}`);
+    }
+    
     const sheet = getCachedSheet(sheetName);
     const data = sheet.getDataRange().getValues();
     const headers = data[0];
@@ -842,21 +785,13 @@ function updateOrderDetails(orderId, platform, updatedData) {
     const submissionIdIndex = findColumnIndex(headers, 'Submission_Id');
     let foundRow = -1;
     
-    if (historicalIdIndex !== -1) {
-      for (let i = 1; i < data.length; i++) {
-        if (data[i][historicalIdIndex] == orderId) {
-          foundRow = i;
-          break;
-        }
-      }
-    }
-    
-    if (foundRow === -1 && submissionIdIndex !== -1) {
-      for (let i = 1; i < data.length; i++) {
-        if (data[i][submissionIdIndex] == orderId) {
-          foundRow = i;
-          break;
-        }
+    for (let i = 1; i < data.length; i++) {
+      const historicalId = historicalIdIndex !== -1 ? data[i][historicalIdIndex] : null;
+      const submissionId = submissionIdIndex !== -1 ? data[i][submissionIdIndex] : null;
+      
+      if (historicalId == orderId || submissionId == orderId) {
+        foundRow = i;
+        break;
       }
     }
     
@@ -864,108 +799,205 @@ function updateOrderDetails(orderId, platform, updatedData) {
       throw new Error(`Order with ID ${orderId} not found`);
     }
     
-    // Update each field
-    const updatedFields = [];
-    Object.keys(updatedData).forEach(key => {
-      let columnIndex = findColumnIndex(headers, key);
-      
-      if (columnIndex === -1) {
-        columnIndex = headers.length;
-        sheet.getRange(1, columnIndex + 1).setValue(key);
-      }
-      
-      sheet.getRange(foundRow + 1, columnIndex + 1).setValue(updatedData[key]);
-      updatedFields.push(key);
-    });
+    // Find or create Comments column
+    let commentsColumnIndex = findColumnIndex(headers, 'Comments');
+    if (commentsColumnIndex === -1) {
+      commentsColumnIndex = headers.length;
+      sheet.getRange(1, commentsColumnIndex + 1).setValue('Comments');
+    }
+    
+    // Update comments
+    sheet.getRange(foundRow + 1, commentsColumnIndex + 1).setValue(newComments);
     
     // Log success
-    logAction('ORDER_DETAILS_UPDATED', {
+    logAction('ORDER_COMMENTS_UPDATED', {
       orderId: orderId,
-      platform: platform,
-      fieldsUpdated: updatedFields
+      platform: platform
     });
     
-    console.log(`✅ Updated order ${orderId}`);
+    console.log(`✅ Updated comments for row ${foundRow + 1}`);
     
     return {
       success: true,
-      message: 'Order details updated successfully'
+      message: 'Comments updated successfully'
     };
     
   } catch (error) {
-    console.error('Error updating order details:', error);
+    console.error('Error updating comments:', error);
     
-    logAction('ORDER_UPDATE_FAILED', {
+    logAction('ORDER_COMMENTS_UPDATE_FAILED', {
       orderId: orderId,
       platform: platform,
       error: error.message
     }, 'ERROR');
     
+    return { success: false, message: error.message };
+  }
+}
+
+/**
+ * ✅ NEW: Create manual order (Amazon or Target)
+ * @param {Object} orderData - Order data from form
+ * @returns {Object} Creation result
+ */
+function createManualOrder(orderData) {
+  try {
+    console.log('📝 Creating manual order:', orderData.platform);
+    
+    const platform = orderData.platform; // 'amazon' or 'target'
+    const sheetMap = {
+      'amazon': 'AmazonOrders',
+      'target': 'TargetOrders'
+    };
+    
+    const sheetName = sheetMap[platform];
+    if (!sheetName) {
+      throw new Error(`Invalid platform: ${platform}`);
+    }
+    
+    // Prepare form data object
+    const formData = {
+      form_type: platform === 'amazon' ? 'amazon-order' : 'target-order',
+      Student_Organization: orderData.organization,
+      Event_Name: orderData.eventName,
+      Event_Date: orderData.eventDate,
+      Pickup_Person_Name: orderData.pickupPerson,
+      Pickup_Person_Email: orderData.pickupEmail,
+      Pickup_Person_Phone: orderData.pickupPhone,
+      Submission_Email_Address: orderData.pickupEmail,
+      'Form Submitter Notes': orderData.notes || '',
+      Order_Status: 'New Order'
+    };
+    
+    // Platform-specific fields
+    if (platform === 'amazon') {
+      formData.Wishlist_Link = orderData.wishlistLink;
+      formData.Total_Order = orderData.totalOrder || 0;
+    } else {
+      formData.Cart_Total = orderData.cartTotal || 0;
+      // Add item URLs and quantities
+      if (orderData.items && orderData.items.length > 0) {
+        orderData.items.forEach((item, index) => {
+          const itemNum = index + 1;
+          const itemNumWords = ['First', 'Second', 'Third', 'Fourth', 'Fifth', 'Sixth', 'Seventh', 'Eighth', 'Ninth', 'Tenth'];
+          const itemWord = itemNumWords[index] || `Item_${itemNum}`;
+          formData[`${itemWord}_Item_Url`] = item.url;
+          formData[`${itemWord}_Item_Quantity`] = item.quantity || '1';
+        });
+      }
+    }
+    
+    // Write to sheet
+    const writeResult = writeToSheet(formData);
+    
+    if (!writeResult.success) {
+      throw new Error('Failed to write order: ' + writeResult.error);
+    }
+    
+    // Assign IDs
+    const sheet = getCachedSheet(writeResult.sheetName);
+    const idResult = assignIDsToRow(sheet, writeResult.row);
+    
+    // Generate confirmation number
+    const confirmationNumber = generateConfirmationNumber(orderData.organization);
+    addConfirmationNumberToSheet(sheet, writeResult.row, confirmationNumber);
+    
+    // Log success
+    logAction('MANUAL_ORDER_CREATED', {
+      platform: platform,
+      organization: orderData.organization,
+      confirmationNumber: confirmationNumber
+    });
+    
+    console.log(`✅ Manual order created: ${confirmationNumber}`);
+    
+    return {
+      success: true,
+      message: 'Order created successfully',
+      confirmationNumber: confirmationNumber,
+      orderId: idResult.assignedIds?.Historical_Submission_Id
+    };
+    
+  } catch (error) {
+    console.error('❌ Manual order creation failed:', error);
+    
+    logAction('MANUAL_ORDER_CREATION_FAILED', {
+      error: error.message
+    }, 'ERROR');
+    
     return {
       success: false,
-      message: `Failed to update order: ${error.message}`
+      message: error.message
     };
   }
 }
 
 /**
- * Update document submission
+ * ✅ NEW: Submit manual documents (with file upload support)
+ * @param {Object} docData - Document submission data
+ * @returns {Object} Submission result
  */
-function updateDocumentSubmission(docId, updatedData) {
+function submitManualDocuments(docData) {
   try {
-    const spreadsheet = getCachedSpreadsheet();
-    const sheet = spreadsheet.getSheetByName('DocumentSubmissions');
+    console.log('📄 Submitting manual documents');
     
-    if (!sheet) {
-      throw new Error('DocumentSubmissions sheet not found');
-    }
+    // Prepare form data
+    const formData = {
+      form_type: 'document-submission',
+      First_Name: docData.firstName,
+      Last_Name: docData.lastName,
+      Email_Address: docData.email,
+      Student_Organization: docData.organization,
+      Event_Name: docData.eventName,
+      Event_Date: docData.eventDate,
+      'Form Submitter Notes': docData.notes || ''
+    };
     
-    const data = sheet.getDataRange().getValues();
-    const headers = data[0];
-    
-    const idIndex = headers.indexOf('Submission_Id');
-    const historicalIdIndex = headers.indexOf('Historical_Submission_Id');
-    
-    let foundRow = -1;
-    for (let i = 1; i < data.length; i++) {
-      const submissionId = data[i][idIndex];
-      const historicalId = historicalIdIndex !== -1 ? data[i][historicalIdIndex] : null;
+    // ✅ Add file data if present
+    if (docData.fileData && Object.keys(docData.fileData).length > 0) {
+      formData.fileData = docData.fileData;
+      console.log(`📎 Processing ${Object.keys(docData.fileData).length} files`);
       
-      if (submissionId == docId || historicalId == docId) {
-        foundRow = i;
-        break;
-      }
+      // Process files BEFORE writing to sheet
+      processFilesAndAddLinksToFormData(formData);
     }
     
-    if (foundRow === -1) {
-      throw new Error(`Document with ID ${docId} not found`);
+    // Write to sheet
+    const writeResult = writeToSheet(formData);
+    
+    if (!writeResult.success) {
+      throw new Error('Failed to write document submission: ' + writeResult.error);
     }
     
-    // Update fields
-    const updatedFields = [];
-    Object.keys(updatedData).forEach(columnName => {
-      const colIndex = headers.indexOf(columnName);
-      if (colIndex !== -1) {
-        sheet.getRange(foundRow + 1, colIndex + 1).setValue(updatedData[columnName]);
-        updatedFields.push(columnName);
-      }
+    // Assign IDs
+    const sheet = getCachedSheet(writeResult.sheetName);
+    const idResult = assignIDsToRow(sheet, writeResult.row);
+    
+    // Generate confirmation number
+    const confirmationNumber = generateConfirmationNumber(docData.organization);
+    addConfirmationNumberToSheet(sheet, writeResult.row, confirmationNumber);
+    
+    // Log success
+    logAction('MANUAL_DOCUMENT_SUBMITTED', {
+      organization: docData.organization,
+      confirmationNumber: confirmationNumber,
+      filesUploaded: docData.fileData ? Object.keys(docData.fileData).length : 0
     });
     
-    logAction('DOCUMENT_UPDATED', {
-      docId: docId,
-      fieldsUpdated: updatedFields
-    });
+    console.log(`✅ Manual document submission created: ${confirmationNumber}`);
     
     return {
       success: true,
-      message: 'Document submission updated successfully'
+      message: 'Document submission created successfully',
+      confirmationNumber: confirmationNumber,
+      docId: idResult.assignedIds?.Historical_Submission_Id,
+      filesUploaded: docData.fileData ? Object.keys(docData.fileData).length : 0
     };
     
   } catch (error) {
-    console.error('Error updating document:', error);
+    console.error('❌ Manual document submission failed:', error);
     
-    logAction('DOCUMENT_UPDATE_FAILED', {
-      docId: docId,
+    logAction('MANUAL_DOCUMENT_SUBMISSION_FAILED', {
       error: error.message
     }, 'ERROR');
     
@@ -999,4 +1031,3 @@ function testSpreadsheetConnection() {
     };
   }
 }
-
