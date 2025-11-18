@@ -1,7 +1,7 @@
 /**
  * ============================================
- * EMAIL TEMPLATES & SENDING
- * Unified email system with tracking support
+ * EMAIL TEMPLATES & SENDING - ENHANCED
+ * Includes detailed item lists and document tracking
  * ============================================
  */
 
@@ -9,7 +9,7 @@
 const EMAIL_CONFIG = {
   FROM_NAME: 'Brooklyn College Central Depository',
   STAFF_EMAIL: 'greg@brooklyn.cuny.club',
-  TRACKING_ENABLED: false // Set to true when tracking pixel is deployed
+  TRACKING_ENABLED: false
 };
 
 // ========================================
@@ -18,21 +18,20 @@ const EMAIL_CONFIG = {
 
 /**
  * Send confirmation email to form submitter
- * @param {Object} formData - Form submission data
- * @param {string} formType - Form type identifier
- * @param {string} confirmationNumber - Confirmation number
- * @param {string} trackingPixel - Optional tracking pixel HTML
- * @returns {Object} Email sending result
  */
 function sendConfirmationEmail(formData, formType, confirmationNumber, trackingPixel = '') {
   try {
     console.log('📧 Preparing confirmation email...');
+    console.log('   Form Type:', formType);
+    console.log('   Confirmation #:', confirmationNumber);
     
     // Get submitter email
     const submitterEmail = formData.Submission_Email_Address || 
                           formData.Pickup_Person_Email ||
                           formData.email ||
                           formData.Email_Address;
+    
+    console.log('   Target Email:', submitterEmail);
     
     if (!submitterEmail || !isValidEmail(submitterEmail)) {
       console.log('❌ No valid email address found');
@@ -46,6 +45,9 @@ function sendConfirmationEmail(formData, formType, confirmationNumber, trackingP
     const timestamp = getFormattedTimestamp();
     const emailContent = generateEmailContent(formData, formType, confirmationNumber, timestamp, trackingPixel);
     
+    console.log('   Subject:', emailContent.subject);
+    console.log('📤 Sending email...');
+    
     // Send email
     MailApp.sendEmail({
       to: submitterEmail,
@@ -57,6 +59,7 @@ function sendConfirmationEmail(formData, formType, confirmationNumber, trackingP
     console.log('✅ Confirmation email sent to:', submitterEmail);
     
     // Send staff notification
+    console.log('📧 Sending staff notification...');
     sendStaffNotification(formData, formType, confirmationNumber);
     
     return {
@@ -76,9 +79,6 @@ function sendConfirmationEmail(formData, formType, confirmationNumber, trackingP
 
 /**
  * Send staff notification email
- * @param {Object} formData - Form submission data
- * @param {string} formType - Form type identifier
- * @param {string} confirmationNumber - Confirmation number
  */
 function sendStaffNotification(formData, formType, confirmationNumber) {
   try {
@@ -114,12 +114,6 @@ Time: ${getFormattedTimestamp()}
 
 /**
  * Generate email content based on form type
- * @param {Object} formData - Form data
- * @param {string} formType - Form type
- * @param {string} confirmationNumber - Confirmation number
- * @param {string} timestamp - Formatted timestamp
- * @param {string} trackingPixel - Optional tracking pixel
- * @returns {Object} Email subject and HTML body
  */
 function generateEmailContent(formData, formType, confirmationNumber, timestamp, trackingPixel = '') {
   let subject, htmlBody;
@@ -157,10 +151,6 @@ function generateEmailContent(formData, formType, confirmationNumber, timestamp,
 // EMAIL TEMPLATE STYLES (SHARED)
 // ========================================
 
-/**
- * Get shared CSS styles for email templates
- * @returns {string} CSS styles
- */
 function getEmailStyles() {
   return `
     body {
@@ -262,6 +252,58 @@ function getEmailStyles() {
       flex: 1;
       word-break: break-word;
     }
+    .items-list {
+      background-color: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+    .item-row {
+      padding: 10px;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .item-row:last-child {
+      border-bottom: none;
+    }
+    .item-name {
+      flex: 1;
+      color: #495057;
+      font-size: 14px;
+    }
+    .item-quantity {
+      background-color: #007bff;
+      color: white;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-left: 10px;
+    }
+    .document-list {
+      background-color: #fff;
+      border: 1px solid #dee2e6;
+      border-radius: 6px;
+      padding: 15px;
+      margin-top: 10px;
+    }
+    .document-item {
+      padding: 8px 12px;
+      border-bottom: 1px solid #e9ecef;
+      display: flex;
+      align-items: center;
+    }
+    .document-item:last-child {
+      border-bottom: none;
+    }
+    .document-icon {
+      color: #28a745;
+      margin-right: 10px;
+      font-size: 16px;
+    }
     .next-steps {
       background-color: #fff3cd;
       border-left: 4px solid #ffc107;
@@ -311,9 +353,6 @@ function getEmailStyles() {
 // AMAZON EMAIL TEMPLATE
 // ========================================
 
-/**
- * Generate Amazon order confirmation email
- */
 function generateAmazonEmailHTML(formData, confirmationNumber, timestamp, trackingPixel) {
   return `
 <!DOCTYPE html>
@@ -360,8 +399,8 @@ function generateAmazonEmailHTML(formData, confirmationNumber, timestamp, tracki
           <span class="info-value">${formData.Student_Organization || 'Not specified'}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">Wishlist Link:</span>
-          <span class="info-value"><a href="${formData.Wishlist_Link || '#'}">${formData.Wishlist_Link || 'Not provided'}</a></span>
+          <span class="info-label">Amazon Wishlist:</span>
+          <span class="info-value"><a href="${formData.Wishlist_Link || '#'}" style="color: #FF9900; font-weight: 600;">View Your Wishlist</a></span>
         </div>
       </div>
       
@@ -383,7 +422,7 @@ function generateAmazonEmailHTML(formData, confirmationNumber, timestamp, tracki
       
       <div class="next-steps">
         <h3>📞 Next Steps</h3>
-        <p>Our team will review your Amazon order request and contact you within <strong>2-3 business days</strong>.</p>
+        <p>We will place your order prior to your event, but <strong>cannot guarantee shipment times</strong>. We will notify you when your items are ready for pickup.</p>
       </div>
       
       <div style="text-align: center;">
@@ -403,20 +442,73 @@ function generateAmazonEmailHTML(formData, confirmationNumber, timestamp, tracki
 }
 
 // ========================================
-// TARGET EMAIL TEMPLATE
+// TARGET EMAIL TEMPLATE - WITH ITEM LIST
 // ========================================
 
-/**
- * Generate Target order confirmation email
- */
 function generateTargetEmailHTML(formData, confirmationNumber, timestamp, trackingPixel) {
-  // Count items
-  let itemCount = 0;
-  const itemFields = ['First_Item_Url', 'Second_Item_Url', 'Third_Item_Url', 'Fourth_Item_Url', 'Fifth_Item_Url',
-                     'Sixth_Item_Url', 'Seventh_Item_Url', 'Eighth_Item_Url', 'Ninth_Item_Url', 'Tenth_Item_Url'];
-  itemFields.forEach(field => {
-    if (formData[field] && formData[field].trim() !== '') itemCount++;
+  // Extract items from formData
+  const items = [];
+  const itemFields = [
+    'First_Item_Url', 'Second_Item_Url', 'Third_Item_Url', 'Fourth_Item_Url', 'Fifth_Item_Url',
+    'Sixth_Item_Url', 'Seventh_Item_Url', 'Eighth_Item_Url', 'Ninth_Item_Url', 'Tenth_Item_Url'
+  ];
+  
+  const quantityFields = [
+    'First_Item_Quantity', 'Second_Item_Quantity', 'Third_Item_Quantity', 'Fourth_Item_Quantity', 'Fifth_Item_Quantity',
+    'Sixth_Item_Quantity', 'Seventh_Item_Quantity', 'Eighth_Item_Quantity', 'Ninth_Item_Quantity', 'Tenth_Item_Quantity'
+  ];
+  
+  itemFields.forEach((urlField, index) => {
+    const itemUrl = formData[urlField];
+    const quantityField = quantityFields[index];
+    const quantity = formData[quantityField] || '1';
+    
+    if (itemUrl && itemUrl.trim() !== '') {
+      // Extract item name from URL (get the last part after the last slash)
+      let itemName = itemUrl;
+      try {
+        const url = new URL(itemUrl);
+        const pathParts = url.pathname.split('/').filter(p => p);
+        if (pathParts.length > 0) {
+          // Get last part and clean it up
+          itemName = pathParts[pathParts.length - 1]
+            .replace(/-/g, ' ')
+            .replace(/_/g, ' ')
+            .substring(0, 50); // Limit length
+        }
+      } catch (e) {
+        // If URL parsing fails, just use shortened URL
+        itemName = itemUrl.substring(0, 50) + '...';
+      }
+      
+      items.push({
+        name: itemName,
+        url: itemUrl,
+        quantity: quantity
+      });
+    }
   });
+  
+  const itemCount = items.length;
+  
+  // Build items list HTML
+  let itemsListHTML = '';
+  if (itemCount > 0) {
+    itemsListHTML = '<div class="items-list">';
+    items.forEach((item, index) => {
+      itemsListHTML += `
+        <div class="item-row">
+          <div class="item-name">
+            ${index + 1}. <a href="${item.url}" style="color: #cc0000; text-decoration: underline;">${item.name}</a>
+          </div>
+          <div class="item-quantity">Qty: ${item.quantity}</div>
+        </div>
+      `;
+    });
+    itemsListHTML += '</div>';
+  } else {
+    itemsListHTML = '<p style="color: #6c757d; font-style: italic;">No items specified</p>';
+  }
   
   return `
 <!DOCTYPE html>
@@ -459,13 +551,14 @@ function generateTargetEmailHTML(formData, confirmationNumber, timestamp, tracki
           <span class="info-value">${formData.Event_Date || 'Not specified'}</span>
         </div>
         <div class="info-row">
-          <span class="info-label">Items Requested:</span>
-          <span class="info-value">${itemCount} items</span>
+          <span class="info-label">Organization:</span>
+          <span class="info-value">${formData.Student_Organization || 'Not specified'}</span>
         </div>
-        <div class="info-row">
-          <span class="info-label">Estimated Total:</span>
-          <span class="info-value">$${formData.Cart_Total || '0.00'}</span>
-        </div>
+      </div>
+      
+      <div class="info-box">
+        <h3>🛒 Items Requested (${itemCount} item${itemCount !== 1 ? 's' : ''})</h3>
+        ${itemsListHTML}
       </div>
       
       <div class="info-box">
@@ -486,7 +579,7 @@ function generateTargetEmailHTML(formData, confirmationNumber, timestamp, tracki
       
       <div class="next-steps">
         <h3>📞 Next Steps</h3>
-        <p>Our team will review your Target order request and contact you within <strong>2-3 business days</strong>. We will process your order and notify you when items are ready for pickup.</p>
+        <p>Our team will review your Target order request and contact you within <strong>2-3 business days of the event</strong> if there are any changes to be made. We will process your order and Target will notify you when items are ready for pickup.</p>
       </div>
       
       <div style="text-align: center;">
@@ -506,13 +599,45 @@ function generateTargetEmailHTML(formData, confirmationNumber, timestamp, tracki
 }
 
 // ========================================
-// DOCUMENT SUBMISSION EMAIL TEMPLATE
+// DOCUMENT SUBMISSION EMAIL - WITH FILE LIST
 // ========================================
 
-/**
- * Generate document submission confirmation email
- */
 function generateDocumentEmailHTML(formData, confirmationNumber, timestamp, trackingPixel) {
+  // Check which documents were uploaded
+  const documents = [];
+  const docFields = [
+    { key: 'nonPO_FileLink', label: 'Non-PO File' },
+    { key: 'signIn_FileLink', label: 'Sign-In Sheet' },
+    { key: 'invoice_FileLink', label: 'Invoice' },
+    { key: 'eventFlyer_FileLink', label: 'Event Flyer' },
+    { key: 'officialReceipt_FileLink', label: 'Official Receipt' }
+  ];
+  
+  docFields.forEach(doc => {
+    if (formData[doc.key] && formData[doc.key].trim() !== '') {
+      documents.push(doc.label);
+    }
+  });
+  
+  const docCount = documents.length;
+  
+  // Build documents list HTML
+  let documentsListHTML = '';
+  if (docCount > 0) {
+    documentsListHTML = '<div class="document-list">';
+    documents.forEach(docName => {
+      documentsListHTML += `
+        <div class="document-item">
+          <span class="document-icon">✓</span>
+          <span>${docName}</span>
+        </div>
+      `;
+    });
+    documentsListHTML += '</div>';
+  } else {
+    documentsListHTML = '<p style="color: #6c757d; font-style: italic;">No documents attached</p>';
+  }
+  
   return `
 <!DOCTYPE html>
 <html>
@@ -546,6 +671,10 @@ function generateDocumentEmailHTML(formData, confirmationNumber, timestamp, trac
           <span class="info-value">${timestamp}</span>
         </div>
         <div class="info-row">
+          <span class="info-label">Submitted By:</span>
+          <span class="info-value">${formData.First_Name || ''} ${formData.Last_Name || ''}</span>
+        </div>
+        <div class="info-row">
           <span class="info-label">Event Name:</span>
           <span class="info-value">${formData.Event_Name || 'Not specified'}</span>
         </div>
@@ -553,6 +682,11 @@ function generateDocumentEmailHTML(formData, confirmationNumber, timestamp, trac
           <span class="info-label">Event Date:</span>
           <span class="info-value">${formData.Event_Date || 'Not specified'}</span>
         </div>
+      </div>
+      
+      <div class="info-box">
+        <h3>📎 Documents Received (${docCount} document${docCount !== 1 ? 's' : ''})</h3>
+        ${documentsListHTML}
       </div>
       
       <div class="next-steps">
@@ -579,9 +713,6 @@ function generateDocumentEmailHTML(formData, confirmationNumber, timestamp, trac
 // FEEDBACK EMAIL TEMPLATE
 // ========================================
 
-/**
- * Generate feedback confirmation email
- */
 function generateFeedbackEmailHTML(formData, confirmationNumber, timestamp, trackingPixel) {
   return `
 <!DOCTYPE html>
@@ -627,9 +758,6 @@ function generateFeedbackEmailHTML(formData, confirmationNumber, timestamp, trac
 // GENERIC EMAIL TEMPLATE
 // ========================================
 
-/**
- * Generate generic confirmation email
- */
 function generateGenericEmailHTML(formData, confirmationNumber, timestamp, trackingPixel) {
   return `
 <!DOCTYPE html>
@@ -647,7 +775,7 @@ function generateGenericEmailHTML(formData, confirmationNumber, timestamp, track
     </div>
     
     <div class="content">
-    <p>Your form submission has been successfully received.</p>
+      <p>Your form submission has been successfully received.</p>
       
       <div class="confirmation-box">
         <div class="confirmation-label">Confirmation Number</div>
