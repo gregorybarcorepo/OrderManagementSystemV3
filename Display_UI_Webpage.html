@@ -2385,6 +2385,23 @@
           </div>
         </div>
       `;
+
+
+      // After Contact Information section, add:
+      
+      <div style="margin-bottom: 20px;">
+        <h3 style="margin-bottom: 12px; color: #212b36;">👤 Processing Information</h3>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
+          <div>
+            <strong>Processed By:</strong><br>
+            ${order.processedBy || '<span style="color: #6c757d;">Not yet assigned</span>'}
+          </div>
+          <div>
+            <strong>Processed On:</strong><br>
+            ${order.timeProcessedBy || '<span style="color: #6c757d;">N/A</span>'}
+          </div>
+        </div>
+      </div>
       
       // Items Section (for both Amazon and Target)
       if (order.items && order.items.length > 0) {
@@ -2710,122 +2727,155 @@
       document.body.style.overflow = 'hidden';
     }
     
-    /**
-     * Edit order status modal
-     */
-    function editOrderStatus(orderId, platform) {
-      Logger.log('ORDER_STATUS_EDIT_STARTED', { orderId, platform });
+function editOrderStatus(orderId, platform) {
+  Logger.log('ORDER_STATUS_EDIT_STARTED', { orderId, platform });
+  
+  const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
+  const order = orders.find(o => o.id == orderId || String(o.id) === String(orderId));
+  
+  if (!order) {
+    console.error('Order lookup failed for status edit:', { orderId, platform });
+    showToast('Order not found', 'error');
+    return;
+  }
+  
+  const currentStatus = order.status || 'new-order';
+  
+  const statusOptions = [
+    { value: 'new-order', label: 'New Order' },
+    { value: 'ordered', label: 'Ordered' },
+    { value: 'delivered-to-mailroom', label: 'Delivered to Mailroom' },
+    { value: 'completed', label: 'Completed' },
+    { value: 'awaiting-club-response', label: 'Awaiting Club Response' },
+    { value: 'cancelled', label: 'Cancelled' }
+  ];
+  
+  let optionsHTML = '';
+  statusOptions.forEach(opt => {
+    optionsHTML += `
+      <option value="${opt.value}" ${currentStatus === opt.value ? 'selected' : ''}>
+        ${opt.label}
+      </option>
+    `;
+  });
+  
+  // ✅ NEW: Build employee dropdown
+  let employeeOptionsHTML = '<option value="">-- Select Employee --</option>';
+  if (namesData.employees && namesData.employees.length > 0) {
+    namesData.employees.forEach(employee => {
+      employeeOptionsHTML += `<option value="${employee}">${employee}</option>`;
+    });
+  }
+  
+  const modal = document.getElementById('orderModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const modalBody = document.getElementById('modalBody');
+  
+  modalTitle.textContent = 'Change Order Status';
+  
+  modalBody.innerHTML = `
+    <div style="margin-bottom: 20px;">
+      <p style="margin-bottom: 12px;">
+        <strong>Order:</strong> ${order.organization} - ${order.eventName}
+      </p>
+      <p style="margin-bottom: 20px; color: #6d7175;">
+        Order ID: ${orderId}
+      </p>
       
-      const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
-      const order = orders.find(o => o.id == orderId || String(o.id) === String(orderId));
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+          Select New Status:<span style="color: #ef4444;">*</span>
+        </label>
+        <select id="newStatusSelect" class="filter-select" style="width: 100%;">
+          ${optionsHTML}
+        </select>
+      </div>
       
-      if (!order) {
-        console.error('Order lookup failed for status edit:', { orderId, platform });
-        showToast('Order not found', 'error');
-        return;
-      }
+      <!-- ✅ NEW: Employee Dropdown -->
+      <div style="margin-bottom: 16px;">
+        <label style="display: block; margin-bottom: 8px; font-weight: 600;">
+          Processed By:<span style="color: #ef4444;">*</span>
+        </label>
+        <select id="processedBySelect" class="filter-select" style="width: 100%;">
+          ${employeeOptionsHTML}
+        </select>
+        <small style="color: #6d7175; font-size: 12px;">Select the employee making this status change</small>
+      </div>
       
-      const currentStatus = order.status || 'new-order';
-      
-      const statusOptions = [
-        { value: 'new-order', label: 'New Order' },
-        { value: 'ordered', label: 'Ordered' },
-        { value: 'delivered-to-mailroom', label: 'Delivered to Mailroom' },
-        { value: 'completed', label: 'Completed' },
-        { value: 'awaiting-club-response', label: 'Awaiting Club Response' },
-        { value: 'cancelled', label: 'Cancelled' }
-      ];
-      
-      let optionsHTML = '';
-      statusOptions.forEach(opt => {
-        optionsHTML += `
-          <option value="${opt.value}" ${currentStatus === opt.value ? 'selected' : ''}>
-            ${opt.label}
-          </option>
-        `;
-      });
-      
-      const modal = document.getElementById('orderModal');
-      const modalTitle = document.getElementById('modalTitle');
-      const modalBody = document.getElementById('modalBody');
-      
-      modalTitle.textContent = 'Change Order Status';
-      
-      modalBody.innerHTML = `
-        <div style="margin-bottom: 20px;">
-          <p style="margin-bottom: 12px;">
-            <strong>Order:</strong> ${order.organization} - ${order.eventName}
-          </p>
-          <p style="margin-bottom: 20px; color: #6d7175;">
-            Order ID: ${orderId}
-          </p>
-          
-          <label style="display: block; margin-bottom: 8px; font-weight: 600;">
-            Select New Status:
-          </label>
-          <select id="newStatusSelect" class="filter-select" style="width: 100%;">
-            ${optionsHTML}
-          </select>
+      ${order.processedBy ? `
+        <div style="padding: 12px; background: #f9fafb; border-radius: 6px; margin-bottom: 16px;">
+          <small style="color: #6d7175; font-size: 12px;">
+            <strong>Last Updated:</strong> ${order.processedBy} on ${order.timeProcessedBy || 'Unknown date'}
+          </small>
         </div>
-        
-        <div style="display: flex; gap: 12px; justify-content: flex-end;">
-          <button class="btn btn-secondary" onclick="closeOrderModal()">Cancel</button>
-          <button class="btn btn-primary" id="updateStatusBtn" onclick="saveStatusChange('${orderId}', '${platform}')">
-            Update Status
-          </button>
-        </div>
-      `;
-      
-      modal.style.display = 'block';
-      document.body.style.overflow = 'hidden';
-    }
+      ` : ''}
+    </div>
     
-    /**
-     * Save status change with loading spinner
-     */
-    function saveStatusChange(orderId, platform) {
-      const newStatus = document.getElementById('newStatusSelect').value;
+    <div style="display: flex; gap: 12px; justify-content: flex-end;">
+      <button class="btn btn-secondary" onclick="closeOrderModal()">Cancel</button>
+      <button class="btn btn-primary" id="updateStatusBtn" onclick="saveStatusChange('${orderId}', '${platform}')">
+        Update Status
+      </button>
+    </div>
+  `;
+  
+  modal.style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+    
+function saveStatusChange(orderId, platform) {
+  const newStatus = document.getElementById('newStatusSelect').value;
+  const processedBy = document.getElementById('processedBySelect').value;
+  
+  // ✅ NEW: Validate employee selection
+  if (!processedBy || processedBy === '') {
+    showToast('Please select an employee', 'error');
+    document.getElementById('processedBySelect').style.borderColor = '#ef4444';
+    return;
+  }
+  
+  if (!newStatus) {
+    showToast('Please select a status', 'error');
+    return;
+  }
+  
+  Logger.log('ORDER_STATUS_SAVE_STARTED', { orderId, platform, newStatus, processedBy });
+  
+  const btn = document.getElementById('updateStatusBtn');
+  setButtonLoading(btn, true);
+  
+  google.script.run
+    .withSuccessHandler(function(result) {
+      setButtonLoading(btn, false);
       
-      if (!newStatus) {
-        showToast('Please select a status', 'error');
-        return;
+      if (result.success) {
+        Logger.log('ORDER_STATUS_SAVE_SUCCESS', { orderId, newStatus, processedBy });
+        
+        // ✅ UPDATE: Update local data with employee info
+        const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
+        const order = orders.find(o => o.id == orderId || String(o.id) === String(orderId));
+        if (order) {
+          order.status = newStatus;
+          order.processedBy = processedBy;
+          order.timeProcessedBy = result.processedAt;
+        }
+        
+        closeOrderModal();
+        renderOrdersTable();
+        updateDashboard();
+        showToast(`Status updated by ${processedBy}`, 'success');
+      } else {
+        Logger.error('ORDER_STATUS_SAVE_FAILED', result.message);
+        showToast('Failed to update status: ' + result.message, 'error');
       }
-      
-      Logger.log('ORDER_STATUS_SAVE_STARTED', { orderId, platform, newStatus });
-      
-      const btn = document.getElementById('updateStatusBtn');
-      setButtonLoading(btn, true);
-      
-      google.script.run
-        .withSuccessHandler(function(result) {
-          setButtonLoading(btn, false);
-          
-          if (result.success) {
-            Logger.log('ORDER_STATUS_SAVE_SUCCESS', { orderId, newStatus });
-            
-            // ✅ Update local data (NOT affecting spreadsheet order)
-            const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
-            const order = orders.find(o => o.id == orderId || String(o.id) === String(orderId));
-            if (order) {
-              order.status = newStatus;
-            }
-            
-            closeOrderModal();
-            renderOrdersTable();
-            updateDashboard();
-            showToast('Status updated successfully', 'success');
-          } else {
-            Logger.error('ORDER_STATUS_SAVE_FAILED', result.message);
-            showToast('Failed to update status: ' + result.message, 'error');
-          }
-        })
-        .withFailureHandler(function(error) {
-          setButtonLoading(btn, false);
-          Logger.error('ORDER_STATUS_SAVE_ERROR', error);
-          showToast('Error updating status', 'error');
-        })
-        .updateOrderStatus(orderId, platform, newStatus);
-    }
+    })
+    .withFailureHandler(function(error) {
+      setButtonLoading(btn, false);
+      Logger.error('ORDER_STATUS_SAVE_ERROR', error);
+      showToast('Error updating status', 'error');
+    })
+    .updateOrderStatus(orderId, platform, newStatus, processedBy);
+}
     
     /**
      * Close modal
