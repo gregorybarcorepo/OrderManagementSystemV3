@@ -42,7 +42,7 @@
     }
 
     /* ================================================================
-       SECTION 2: LOADING SKELETONS
+       SECTION 2: LOADING SKELETONS & SPINNERS
        ================================================================ */
     .skeleton {
       background: linear-gradient(
@@ -78,6 +78,31 @@
     .skeleton-table-row {
       height: 60px;
       margin-bottom: 8px;
+    }
+
+    .btn-loading {
+      position: relative;
+      color: transparent !important;
+      pointer-events: none;
+    }
+    
+    .btn-loading::after {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      top: 50%;
+      left: 50%;
+      margin-left: -8px;
+      margin-top: -8px;
+      border: 2px solid #ffffff;
+      border-radius: 50%;
+      border-top-color: transparent;
+      animation: spinner 0.6s linear infinite;
+    }
+    
+    @keyframes spinner {
+      to { transform: rotate(360deg); }
     }
 
     /* ================================================================
@@ -357,6 +382,10 @@
       margin-bottom: 12px;
     }
     
+    .search-row:last-child {
+      margin-bottom: 0;
+    }
+    
     .search-input {
       flex: 1;
       padding: 10px 14px;
@@ -434,7 +463,7 @@
     }
 
     /* ================================================================
-       SECTION 8: TABLES
+       SECTION 8: TABLES & SORTING
        ================================================================ */
     .orders-section {
       background: var(--color-white);
@@ -470,6 +499,7 @@
       border-collapse: collapse;
     }
     
+    /* ✅ NEW: Sortable column headers */
     .orders-table th {
       background: #f9fafb;
       padding: 12px 16px;
@@ -481,6 +511,37 @@
       letter-spacing: 0.5px;
       border-bottom: 1px solid var(--color-border);
       white-space: nowrap;
+      position: relative;
+    }
+    
+    .orders-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+      padding-right: 24px;
+    }
+    
+    .orders-table th.sortable:hover {
+      background: #f3f4f6;
+    }
+    
+    .orders-table th.sortable::after {
+      content: '⇅';
+      position: absolute;
+      right: 8px;
+      opacity: 0.3;
+      font-size: 12px;
+    }
+    
+    .orders-table th.sortable.sort-asc::after {
+      content: '▲';
+      opacity: 1;
+      color: var(--color-primary);
+    }
+    
+    .orders-table th.sortable.sort-desc::after {
+      content: '▼';
+      opacity: 1;
+      color: var(--color-primary);
     }
     
     .orders-table td {
@@ -507,6 +568,54 @@
       .orders-table td {
         padding: 12px;
       }
+    }
+
+    /* ✅ NEW: Pagination Controls */
+    .pagination {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      border-top: 1px solid var(--color-border);
+      background: #f9fafb;
+    }
+    
+    .pagination-info {
+      font-size: 14px;
+      color: var(--color-text-light);
+    }
+    
+    .pagination-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .pagination-btn {
+      padding: 6px 12px;
+      border: 1px solid #c9cccf;
+      background: var(--color-white);
+      color: var(--color-text);
+      border-radius: var(--radius-md);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .pagination-btn:hover:not(:disabled) {
+      background: var(--color-bg);
+      border-color: var(--color-primary);
+    }
+    
+    .pagination-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    
+    .pagination-btn.active {
+      background: var(--color-primary);
+      color: var(--color-white);
+      border-color: var(--color-primary);
     }
 
     /* ================================================================
@@ -566,7 +675,7 @@
       padding: 20px;
     }
 
-    /* ✅ NEW: Form Styles for Create Order/Document Modals */
+    /* Form Styles for Create Order/Document Modals */
     .form-group {
       margin-bottom: 16px;
     }
@@ -707,7 +816,7 @@
       z-index: 9999;
     }
 
-    /* ✅ NEW: Comments Section Styles */
+    /* Comments Section Styles */
     .comments-section {
       margin-top: 20px;
       padding-top: 20px;
@@ -775,11 +884,16 @@
       <!-- Dashboard -->
       <div id="dashboard-container"></div>
       
-      <!-- Search & Filters -->
+      <!-- ✅ UPDATED: Search & Filters with Club Dropdown -->
       <div class="search-section">
         <div class="search-row">
           <input type="text" class="search-input" id="search-input" 
                  placeholder="Search orders, clubs, events...">
+          <!-- ✅ NEW: Club-specific dropdown filter -->
+          <select class="filter-select" id="club-filter">
+            <option value="">All Organizations</option>
+            <!-- Will be populated dynamically -->
+          </select>
           <select class="filter-select" id="platform-filter">
             <option value="">All Platforms</option>
             <option value="amazon">Amazon</option>
@@ -804,7 +918,6 @@
         <div class="orders-header">
           <h2 class="orders-title">Orders</h2>
           <div class="orders-actions">
-            <!-- ✅ NEW: Create Order Button -->
             <button class="btn btn-primary" onclick="showCreateOrderModal()">➕ Create Order</button>
             <button class="btn btn-primary" onclick="loadOrderData()">Refresh</button>
             <button class="btn btn-secondary" onclick="exportData()">Export CSV</button>
@@ -813,16 +926,35 @@
         <div id="orders-container">
           <!-- Orders will be loaded here -->
         </div>
+        <!-- ✅ NEW: Pagination controls -->
+        <div class="pagination" id="orders-pagination" style="display: none;">
+          <div class="pagination-info" id="orders-pagination-info"></div>
+          <div class="pagination-controls" id="orders-pagination-controls"></div>
+        </div>
       </div>
     </div>
 
     <!-- DOCUMENTS TAB -->
     <div id="documents-tab" class="tab-content">
+      <!-- ✅ UPDATED: Search & Filters with Club Dropdown -->
+      <div class="search-section">
+        <div class="search-row">
+          <input type="text" class="search-input" id="doc-search-input" 
+                 placeholder="Search documents, names, organizations, events...">
+          <!-- ✅ NEW: Club-specific dropdown filter for documents -->
+          <select class="filter-select" id="doc-club-filter">
+            <option value="">All Organizations</option>
+            <!-- Will be populated dynamically -->
+          </select>
+          <button class="btn btn-primary" onclick="applyDocumentFilters()">Search</button>
+          <button class="btn btn-secondary" onclick="clearDocumentFilters()">Clear</button>
+        </div>
+      </div>
+
       <div class="orders-section">
         <div class="orders-header">
           <h2 class="orders-title">Document Submissions</h2>
           <div class="orders-actions">
-            <!-- ✅ NEW: Submit Documents Button -->
             <button class="btn btn-primary" onclick="showSubmitDocumentsModal()">➕ Submit Documents</button>
             <button class="btn btn-primary" onclick="loadDocumentData()">Refresh</button>
             <button class="btn btn-secondary" onclick="exportDocumentData()">Export CSV</button>
@@ -830,6 +962,11 @@
         </div>
         <div id="documents-container">
           <!-- Documents will be loaded here -->
+        </div>
+        <!-- ✅ NEW: Pagination controls -->
+        <div class="pagination" id="documents-pagination" style="display: none;">
+          <div class="pagination-info" id="documents-pagination-info"></div>
+          <div class="pagination-controls" id="documents-pagination-controls"></div>
         </div>
       </div>
     </div>
@@ -850,7 +987,7 @@
   </div>
 
   <!-- ================================================================
-       MODALS
+       MODALS (Create Order, Submit Documents, Order Details)
        ================================================================ -->
   
   <!-- Order Details Modal -->
@@ -866,7 +1003,7 @@
     </div>
   </div>
 
-  <!-- ✅ NEW: Create Order Modal -->
+  <!-- Create Order Modal -->
   <div id="createOrderModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -889,7 +1026,10 @@
           <div class="form-row">
             <div class="form-group">
               <label class="form-label required">Organization</label>
-              <input type="text" id="orderOrganization" class="form-input" required>
+              <input type="text" id="orderOrganization" class="form-input" required list="club-names-list">
+              <datalist id="club-names-list">
+                <!-- Will be populated dynamically -->
+              </datalist>
             </div>
             <div class="form-group">
               <label class="form-label required">Event Name</label>
@@ -949,14 +1089,14 @@
 
           <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
             <button type="button" class="btn btn-secondary" onclick="closeCreateOrderModal()">Cancel</button>
-            <button type="submit" class="btn btn-primary">Create Order</button>
+            <button type="submit" class="btn btn-primary" id="createOrderBtn">Create Order</button>
           </div>
         </form>
       </div>
     </div>
   </div>
 
-  <!-- ✅ NEW: Submit Documents Modal -->
+  <!-- Submit Documents Modal -->
   <div id="submitDocumentsModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -983,7 +1123,10 @@
 
           <div class="form-group">
             <label class="form-label required">Organization</label>
-            <input type="text" id="docOrganization" class="form-input" required>
+            <input type="text" id="docOrganization" class="form-input" required list="club-names-list-doc">
+            <datalist id="club-names-list-doc">
+              <!-- Will be populated dynamically -->
+            </datalist>
           </div>
 
           <div class="form-row">
@@ -1002,7 +1145,7 @@
             <textarea id="docNotes" class="form-textarea" placeholder="Any additional notes about this submission..."></textarea>
           </div>
 
-          <!-- ✅ File Upload Section -->
+          <!-- File Upload Section -->
           <div style="margin: 20px 0; padding: 20px; background: #f9fafb; border-radius: var(--radius-md); border: 2px dashed #c9cccf;">
             <h3 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 600; color: var(--color-text);">📎 Upload Documents</h3>
             
@@ -1059,17 +1202,43 @@
        ================================================================ */
     const APP_CONFIG = {
       loggingEnabled: true,
-      debugMode: false
+      debugMode: false,
+      itemsPerPage: 50  // ✅ NEW: Items per page for pagination
     };
     
     let orderData = { amazon: [], target: [] };
     let namesData = { clubs: [], employees: [] };
     let documentData = [];
     let filteredOrders = [];
+    let filteredDocuments = [];
     let currentEditOrder = null;
     let currentEditPlatform = null;
     let targetItemCount = 0;
-    let documentFiles = {}; // ✅ NEW: Store uploaded document files
+    let documentFiles = {};
+    
+    // ✅ NEW: Pagination state
+    let ordersPagination = {
+      currentPage: 1,
+      totalPages: 1,
+      itemsPerPage: APP_CONFIG.itemsPerPage
+    };
+    
+    let documentsPagination = {
+      currentPage: 1,
+      totalPages: 1,
+      itemsPerPage: APP_CONFIG.itemsPerPage
+    };
+    
+    // ✅ NEW: Sorting state
+    let ordersSortState = {
+      column: null,
+      direction: null  // 'asc' or 'desc'
+    };
+    
+    let documentsSortState = {
+      column: null,
+      direction: null
+    };
 
     /* ================================================================
        SECTION 2: LOGGING SYSTEM
@@ -1148,6 +1317,18 @@
       Logger.log('SKELETON_SHOWN', { containerId, type });
     }
 
+    function setButtonLoading(button, isLoading, originalText = '') {
+      if (isLoading) {
+        button.dataset.originalText = button.textContent;
+        button.disabled = true;
+        button.classList.add('btn-loading');
+      } else {
+        button.disabled = false;
+        button.classList.remove('btn-loading');
+        button.textContent = button.dataset.originalText || originalText;
+      }
+    }
+
     /* ================================================================
        SECTION 4: DATA LOADING
        ================================================================ */
@@ -1176,6 +1357,7 @@
         });
         
         if (ordersResult.success) {
+          // ✅ CRITICAL: Store original data, never modify
           orderData.amazon = ordersResult.amazon || [];
           orderData.target = ordersResult.target || [];
         }
@@ -1183,6 +1365,9 @@
         if (namesResult.success) {
           namesData.clubs = namesResult.clubs || [];
           namesData.employees = namesResult.employees || [];
+          
+          // Populate dropdowns
+          populateClubDropdowns();
         }
         
         updateDashboard();
@@ -1207,8 +1392,18 @@
               loadTime: result.loadTimeMs
             });
             
+            // ✅ CRITICAL: Store original data, never modify
             documentData = result.documents;
-            displayDocuments(documentData);
+            
+            // Sort by date (most recent first) - CLIENT SIDE ONLY
+            documentData.sort((a, b) => {
+              const dateA = new Date(a.timestamp || 0);
+              const dateB = new Date(b.timestamp || 0);
+              return dateB - dateA;
+            });
+            
+            filteredDocuments = [...documentData];
+            displayDocuments();
             showToast('Documents loaded successfully', 'success');
           } else {
             showDocumentError(result.message);
@@ -1219,6 +1414,57 @@
           showDocumentError(error.message);
         })
         .getDocumentSubmissions();
+    }
+
+    /* ✅ NEW: Populate Club Dropdowns */
+    function populateClubDropdowns() {
+      // Populate form datalists
+      const clubList1 = document.getElementById('club-names-list');
+      const clubList2 = document.getElementById('club-names-list-doc');
+      
+      if (clubList1) {
+        clubList1.innerHTML = '';
+        namesData.clubs.forEach(club => {
+          const option = document.createElement('option');
+          option.value = club;
+          clubList1.appendChild(option);
+        });
+      }
+      
+      if (clubList2) {
+        clubList2.innerHTML = '';
+        namesData.clubs.forEach(club => {
+          const option = document.createElement('option');
+          option.value = club;
+          clubList2.appendChild(option);
+        });
+      }
+      
+      // ✅ NEW: Populate filter dropdowns
+      const clubFilter = document.getElementById('club-filter');
+      const docClubFilter = document.getElementById('doc-club-filter');
+      
+      if (clubFilter) {
+        clubFilter.innerHTML = '<option value="">All Organizations</option>';
+        namesData.clubs.forEach(club => {
+          const option = document.createElement('option');
+          option.value = club;
+          option.textContent = club;
+          clubFilter.appendChild(option);
+        });
+      }
+      
+      if (docClubFilter) {
+        docClubFilter.innerHTML = '<option value="">All Organizations</option>';
+        namesData.clubs.forEach(club => {
+          const option = document.createElement('option');
+          option.value = club;
+          option.textContent = club;
+          docClubFilter.appendChild(option);
+        });
+      }
+      
+      Logger.log('CLUB_DROPDOWNS_POPULATED', { count: namesData.clubs.length });
     }
 
     /* ================================================================
@@ -1360,7 +1606,116 @@
     }
 
     /* ================================================================
-       SECTION 6: UI RENDERING - ORDERS TABLE
+       SECTION 6: ✅ NEW - SORTING FUNCTIONS
+       ================================================================ */
+    
+    /**
+     * Sort orders by column (CLIENT-SIDE ONLY)
+     */
+    function sortOrders(column) {
+      Logger.log('SORTING_ORDERS', { column });
+      
+      // Toggle sort direction
+      if (ordersSortState.column === column) {
+        if (ordersSortState.direction === 'asc') {
+          ordersSortState.direction = 'desc';
+        } else if (ordersSortState.direction === 'desc') {
+          // Reset to no sort
+          ordersSortState.column = null;
+          ordersSortState.direction = null;
+          displayOrders();  // Re-apply original filters
+          return;
+        }
+      } else {
+        ordersSortState.column = column;
+        ordersSortState.direction = 'asc';
+      }
+      
+      // Sort filteredOrders array (NOT original data)
+      filteredOrders.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(column) {
+          case 'organization':
+            aVal = (a.organization || '').toLowerCase();
+            bVal = (b.organization || '').toLowerCase();
+            break;
+          case 'eventDate':
+            aVal = parseEventDate(a.eventDate) || new Date(0);
+            bVal = parseEventDate(b.eventDate) || new Date(0);
+            break;
+          default:
+            return 0;
+        }
+        
+        if (aVal < bVal) return ordersSortState.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return ordersSortState.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+      
+      // Reset to first page and render
+      ordersPagination.currentPage = 1;
+      renderOrdersTable();
+    }
+    
+    /**
+     * Sort documents by column (CLIENT-SIDE ONLY)
+     */
+    function sortDocuments(column) {
+      Logger.log('SORTING_DOCUMENTS', { column });
+      
+      // Toggle sort direction
+      if (documentsSortState.column === column) {
+        if (documentsSortState.direction === 'asc') {
+          documentsSortState.direction = 'desc';
+        } else if (documentsSortState.direction === 'desc') {
+          // Reset to no sort
+          documentsSortState.column = null;
+          documentsSortState.direction = null;
+          // Re-apply original sort (by date)
+          filteredDocuments.sort((a, b) => {
+            const dateA = new Date(a.timestamp || 0);
+            const dateB = new Date(b.timestamp || 0);
+            return dateB - dateA;
+          });
+          documentsPagination.currentPage = 1;
+          renderDocumentsTable();
+          return;
+        }
+      } else {
+        documentsSortState.column = column;
+        documentsSortState.direction = 'asc';
+      }
+      
+      // Sort filteredDocuments array (NOT original data)
+      filteredDocuments.sort((a, b) => {
+        let aVal, bVal;
+        
+        switch(column) {
+          case 'organization':
+            aVal = (a.organization || '').toLowerCase();
+            bVal = (b.organization || '').toLowerCase();
+            break;
+          case 'eventDate':
+            aVal = parseEventDate(a.eventDate) || new Date(0);
+            bVal = parseEventDate(b.eventDate) || new Date(0);
+            break;
+          default:
+            return 0;
+        }
+        
+        if (aVal < bVal) return documentsSortState.direction === 'asc' ? -1 : 1;
+        if (aVal > bVal) return documentsSortState.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+      
+      // Reset to first page and render
+      documentsPagination.currentPage = 1;
+      renderDocumentsTable();
+    }
+
+    /* ================================================================
+       SECTION 7: UI RENDERING - ORDERS TABLE WITH PAGINATION & SORTING
        ================================================================ */
     
     /**
@@ -1385,15 +1740,16 @@
     }
     
     /**
-     * Display all orders with sorting
+     * Display all orders with default sorting (EVENT DATE DESC)
      */
     function displayOrders() {
+      // ✅ Create copy of original data to preserve spreadsheet order
       const allOrders = [
         ...orderData.amazon.map(o => ({ ...o, platform: 'amazon' })),
         ...orderData.target.map(o => ({ ...o, platform: 'target' }))
       ];
       
-      // Sort by Event Date (most recent first) then by submission ID
+      // Default sort by Event Date (most recent first)
       allOrders.sort((a, b) => {
         const dateA = parseEventDate(a.eventDate);
         const dateB = parseEventDate(b.eventDate);
@@ -1411,11 +1767,16 @@
       });
       
       filteredOrders = allOrders;
+      
+      // Reset pagination and sort state
+      ordersPagination.currentPage = 1;
+      ordersSortState = { column: null, direction: null };
+      
       renderOrdersTable();
     }
     
     /**
-     * Render orders table
+     * Render orders table with pagination
      */
     function renderOrdersTable() {
       const container = document.getElementById('orders-container');
@@ -1427,18 +1788,35 @@
             <p>Try adjusting your filters or create a new order.</p>
           </div>
         `;
+        document.getElementById('orders-pagination').style.display = 'none';
         return;
       }
       
+      // Calculate pagination
+      const totalItems = filteredOrders.length;
+      const totalPages = Math.ceil(totalItems / ordersPagination.itemsPerPage);
+      ordersPagination.totalPages = totalPages;
+      
+      const startIdx = (ordersPagination.currentPage - 1) * ordersPagination.itemsPerPage;
+      const endIdx = Math.min(startIdx + ordersPagination.itemsPerPage, totalItems);
+      const pageOrders = filteredOrders.slice(startIdx, endIdx);
+      
+      // ✅ Build table with sortable headers
       let html = `
         <table class="orders-table">
           <thead>
             <tr>
               <th>Platform</th>
               <th>Order ID</th>
-              <th>Organization</th>
+              <th class="sortable ${ordersSortState.column === 'organization' ? 'sort-' + ordersSortState.direction : ''}" 
+                  onclick="sortOrders('organization')">
+                Organization
+              </th>
               <th>Event</th>
-              <th>Event Date</th>
+              <th class="sortable ${ordersSortState.column === 'eventDate' ? 'sort-' + ordersSortState.direction : ''}" 
+                  onclick="sortOrders('eventDate')">
+                Event Date
+              </th>
               <th>Total</th>
               <th>Status</th>
               <th>Actions</th>
@@ -1447,7 +1825,7 @@
           <tbody>
       `;
       
-      filteredOrders.slice(0, 100).forEach(order => {
+      pageOrders.forEach(order => {
         const total = order.platform === 'amazon' ? order.totalOrder : order.cartTotal;
         
         // Get platform order numbers
@@ -1516,44 +1894,156 @@
         </table>
       `;
       
-      if (filteredOrders.length > 100) {
-        html += `
-          <div style="padding: 20px; text-align: center; color: #6d7175;">
-            Showing first 100 of ${filteredOrders.length} orders
-          </div>
+      container.innerHTML = html;
+      
+      // ✅ Render pagination controls
+      renderOrdersPagination();
+      
+      Logger.log('ORDERS_RENDERED', { 
+        count: pageOrders.length, 
+        total: filteredOrders.length,
+        page: ordersPagination.currentPage
+      });
+    }
+    
+    /**
+     * ✅ NEW: Render orders pagination controls
+     */
+    function renderOrdersPagination() {
+      const paginationDiv = document.getElementById('orders-pagination');
+      const infoDiv = document.getElementById('orders-pagination-info');
+      const controlsDiv = document.getElementById('orders-pagination-controls');
+      
+      if (filteredOrders.length === 0 || ordersPagination.totalPages <= 1) {
+        paginationDiv.style.display = 'none';
+        return;
+      }
+      
+      paginationDiv.style.display = 'flex';
+      
+      // Info text
+      const startIdx = (ordersPagination.currentPage - 1) * ordersPagination.itemsPerPage + 1;
+      const endIdx = Math.min(ordersPagination.currentPage * ordersPagination.itemsPerPage, filteredOrders.length);
+      infoDiv.textContent = `Showing ${startIdx}-${endIdx} of ${filteredOrders.length} orders`;
+      
+      // Controls
+      let controlsHTML = '';
+      
+      // Previous button
+      controlsHTML += `
+        <button class="pagination-btn" 
+                ${ordersPagination.currentPage === 1 ? 'disabled' : ''} 
+                onclick="goToOrdersPage(${ordersPagination.currentPage - 1})">
+          ‹ Previous
+        </button>
+      `;
+      
+      // Page numbers
+      const maxPagesToShow = 5;
+      let startPage = Math.max(1, ordersPagination.currentPage - Math.floor(maxPagesToShow / 2));
+      let endPage = Math.min(ordersPagination.totalPages, startPage + maxPagesToShow - 1);
+      
+      if (endPage - startPage < maxPagesToShow - 1) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+      }
+      
+      if (startPage > 1) {
+        controlsHTML += `<button class="pagination-btn" onclick="goToOrdersPage(1)">1</button>`;
+        if (startPage > 2) {
+          controlsHTML += `<span style="padding: 0 8px; color: #6d7175;">...</span>`;
+        }
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        controlsHTML += `
+          <button class="pagination-btn ${i === ordersPagination.currentPage ? 'active' : ''}" 
+                  onclick="goToOrdersPage(${i})">
+            ${i}
+          </button>
         `;
       }
       
-      container.innerHTML = html;
+      if (endPage < ordersPagination.totalPages) {
+        if (endPage < ordersPagination.totalPages - 1) {
+          controlsHTML += `<span style="padding: 0 8px; color: #6d7175;">...</span>`;
+        }
+        controlsHTML += `<button class="pagination-btn" onclick="goToOrdersPage(${ordersPagination.totalPages})">${ordersPagination.totalPages}</button>`;
+      }
       
-      Logger.log('ORDERS_RENDERED', { count: filteredOrders.length });
+      // Next button
+      controlsHTML += `
+        <button class="pagination-btn" 
+                ${ordersPagination.currentPage === ordersPagination.totalPages ? 'disabled' : ''} 
+                onclick="goToOrdersPage(${ordersPagination.currentPage + 1})">
+          Next ›
+        </button>
+      `;
+      
+      controlsDiv.innerHTML = controlsHTML;
+    }
+    
+    /**
+     * ✅ NEW: Navigate to specific orders page
+     */
+    function goToOrdersPage(pageNum) {
+      if (pageNum < 1 || pageNum > ordersPagination.totalPages) return;
+      ordersPagination.currentPage = pageNum;
+      renderOrdersTable();
+      
+      // Scroll to top of table
+      document.getElementById('orders-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     /* ================================================================
-       SECTION 7: UI RENDERING - DOCUMENTS
+       SECTION 8: UI RENDERING - DOCUMENTS TABLE WITH PAGINATION & SORTING
        ================================================================ */
-    function displayDocuments(documents) {
+    
+    function displayDocuments() {
+      // filteredDocuments already set from loadDocumentData or filters
+      documentsPagination.currentPage = 1;
+      documentsSortState = { column: null, direction: null };
+      renderDocumentsTable();
+    }
+    
+    function renderDocumentsTable() {
       const container = document.getElementById('documents-container');
       
-      if (documents.length === 0) {
+      if (filteredDocuments.length === 0) {
         container.innerHTML = `
           <div class="loading">
             <div>📭 No document submissions found</div>
             <p>Document submissions will appear here once submitted.</p>
           </div>
         `;
+        document.getElementById('documents-pagination').style.display = 'none';
         return;
       }
       
+      // Calculate pagination
+      const totalItems = filteredDocuments.length;
+      const totalPages = Math.ceil(totalItems / documentsPagination.itemsPerPage);
+      documentsPagination.totalPages = totalPages;
+      
+      const startIdx = (documentsPagination.currentPage - 1) * documentsPagination.itemsPerPage;
+      const endIdx = Math.min(startIdx + documentsPagination.itemsPerPage, totalItems);
+      const pageDocs = filteredDocuments.slice(startIdx, endIdx);
+      
+      // ✅ Build table with sortable headers
       let html = `
         <table class="orders-table">
           <thead>
             <tr>
               <th>Timestamp</th>
               <th>Name</th>
-              <th>Organization</th>
+              <th class="sortable ${documentsSortState.column === 'organization' ? 'sort-' + documentsSortState.direction : ''}" 
+                  onclick="sortDocuments('organization')">
+                Organization
+              </th>
               <th>Event Name</th>
-              <th>Event Date</th>
+              <th class="sortable ${documentsSortState.column === 'eventDate' ? 'sort-' + documentsSortState.direction : ''}" 
+                  onclick="sortDocuments('eventDate')">
+                Event Date
+              </th>
               <th>Email</th>
               <th>Documents</th>
               <th>Actions</th>
@@ -1562,7 +2052,7 @@
           <tbody>
       `;
       
-      documents.forEach(doc => {
+      pageDocs.forEach(doc => {
         const fullName = [doc.firstName, doc.lastName].filter(n => n).join(' ') || 'N/A';
         
         // Count ONLY 4 file types
@@ -1608,11 +2098,217 @@
       `;
       
       container.innerHTML = html;
-      Logger.log('DOCUMENTS_RENDERED', { count: documents.length });
+      
+      // ✅ Render pagination controls
+      renderDocumentsPagination();
+      
+      Logger.log('DOCUMENTS_RENDERED', { 
+        count: pageDocs.length,
+        total: filteredDocuments.length,
+        page: documentsPagination.currentPage
+      });
+    }
+    
+    /**
+     * ✅ NEW: Render documents pagination controls
+     */
+    function renderDocumentsPagination() {
+      const paginationDiv = document.getElementById('documents-pagination');
+      const infoDiv = document.getElementById('documents-pagination-info');
+      const controlsDiv = document.getElementById('documents-pagination-controls');
+      
+      if (filteredDocuments.length === 0 || documentsPagination.totalPages <= 1) {
+        paginationDiv.style.display = 'none';
+        return;
+      }
+      
+      paginationDiv.style.display = 'flex';
+      
+      // Info text
+      const startIdx = (documentsPagination.currentPage - 1) * documentsPagination.itemsPerPage + 1;
+      const endIdx = Math.min(documentsPagination.currentPage * documentsPagination.itemsPerPage, filteredDocuments.length);
+      infoDiv.textContent = `Showing ${startIdx}-${endIdx} of ${filteredDocuments.length} document submissions`;
+      
+      // Controls
+      let controlsHTML = '';
+      
+      // Previous button
+      controlsHTML += `
+        <button class="pagination-btn" 
+                ${documentsPagination.currentPage === 1 ? 'disabled' : ''} 
+                onclick="goToDocumentsPage(${documentsPagination.currentPage - 1})">
+          ‹ Previous
+        </button>
+      `;
+      
+      // Page numbers
+      const maxPagesToShow = 5;
+      let startPage = Math.max(1, documentsPagination.currentPage - Math.floor(maxPagesToShow / 2));
+      let endPage = Math.min(documentsPagination.totalPages, startPage + maxPagesToShow - 1);
+      
+      if (endPage - startPage < maxPagesToShow - 1) {
+        startPage = Math.max(1, endPage - maxPagesToShow + 1);
+      }
+      
+      if (startPage > 1) {
+        controlsHTML += `<button class="pagination-btn" onclick="goToDocumentsPage(1)">1</button>`;
+        if (startPage > 2) {
+          controlsHTML += `<span style="padding: 0 8px; color: #6d7175;">...</span>`;
+        }
+      }
+      
+      for (let i = startPage; i <= endPage; i++) {
+        controlsHTML += `
+          <button class="pagination-btn ${i === documentsPagination.currentPage ? 'active' : ''}" 
+                  onclick="goToDocumentsPage(${i})">
+            ${i}
+          </button>
+        `;
+      }
+      
+      if (endPage < documentsPagination.totalPages) {
+        if (endPage < documentsPagination.totalPages - 1) {
+          controlsHTML += `<span style="padding: 0 8px; color: #6d7175;">...</span>`;
+        }
+        controlsHTML += `<button class="pagination-btn" onclick="goToDocumentsPage(${documentsPagination.totalPages})">${documentsPagination.totalPages}</button>`;
+      }
+      
+      // Next button
+      controlsHTML += `
+        <button class="pagination-btn" 
+                ${documentsPagination.currentPage === documentsPagination.totalPages ? 'disabled' : ''} 
+                onclick="goToDocumentsPage(${documentsPagination.currentPage + 1})">
+          Next ›
+        </button>
+      `;
+      
+      controlsDiv.innerHTML = controlsHTML;
+    }
+    
+    /**
+     * ✅ NEW: Navigate to specific documents page
+     */
+    function goToDocumentsPage(pageNum) {
+      if (pageNum < 1 || pageNum > documentsPagination.totalPages) return;
+      documentsPagination.currentPage = pageNum;
+      renderDocumentsTable();
+      
+      // Scroll to top of table
+      document.getElementById('documents-container').scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     /* ================================================================
-       SECTION 8: MODALS & INTERACTIONS
+       SECTION 9: FILTERS & SEARCH (UPDATED WITH CLUB FILTER)
+       ================================================================ */
+    
+    function applyFilters() {
+      Logger.log('FILTERS_APPLIED', {});
+      
+      const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
+      const clubFilter = document.getElementById('club-filter').value;  // ✅ NEW
+      const platformFilter = document.getElementById('platform-filter').value;
+      const statusFilter = document.getElementById('status-filter').value;
+      
+      // ✅ CRITICAL: Work with copies, never modify original data
+      const allOrders = [
+        ...orderData.amazon.map(o => ({ ...o, platform: 'amazon' })),
+        ...orderData.target.map(o => ({ ...o, platform: 'target' }))
+      ];
+      
+      filteredOrders = allOrders.filter(order => {
+        // Search filter
+        const searchFields = [
+          order.organization,
+          order.eventName,
+          order.pickupPerson,
+          order.pickupEmail,
+          order.orderNumbers,
+          order.orderConfirmation
+        ].filter(String).join(' ').toLowerCase();
+        
+        const matchesSearch = !searchTerm || searchFields.includes(searchTerm);
+        
+        // ✅ NEW: Club filter
+        const matchesClub = !clubFilter || order.organization === clubFilter;
+        
+        // Platform filter
+        const matchesPlatform = !platformFilter || order.platform === platformFilter;
+        
+        // Status filter
+        const matchesStatus = !statusFilter || order.status === statusFilter;
+        
+        return matchesSearch && matchesClub && matchesPlatform && matchesStatus;
+      });
+      
+      // Reset pagination and sort
+      ordersPagination.currentPage = 1;
+      ordersSortState = { column: null, direction: null };
+      
+      renderOrdersTable();
+    }
+    
+    function clearFilters() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('club-filter').value = '';  // ✅ NEW
+      document.getElementById('platform-filter').value = '';
+      document.getElementById('status-filter').value = '';
+      
+      displayOrders();
+      Logger.log('FILTERS_CLEARED', {});
+    }
+    
+    function applyDocumentFilters() {
+      Logger.log('DOCUMENT_FILTERS_APPLIED', {});
+      
+      const searchTerm = document.getElementById('doc-search-input').value.toLowerCase().trim();
+      const clubFilter = document.getElementById('doc-club-filter').value;  // ✅ NEW
+      
+      if (!searchTerm && !clubFilter) {
+        filteredDocuments = [...documentData];
+      } else {
+        filteredDocuments = documentData.filter(doc => {
+          // Search filter
+          const searchFields = [
+            doc.firstName,
+            doc.lastName,
+            doc.email,
+            doc.organization,
+            doc.eventName,
+            doc.eventDate
+          ].filter(String).join(' ').toLowerCase();
+          
+          const matchesSearch = !searchTerm || searchFields.includes(searchTerm);
+          
+          // ✅ NEW: Club filter
+          const matchesClub = !clubFilter || doc.organization === clubFilter;
+          
+          return matchesSearch && matchesClub;
+        });
+      }
+      
+      // Reset pagination and sort
+      documentsPagination.currentPage = 1;
+      documentsSortState = { column: null, direction: null };
+      
+      renderDocumentsTable();
+    }
+    
+    function clearDocumentFilters() {
+      document.getElementById('doc-search-input').value = '';
+      document.getElementById('doc-club-filter').value = '';  // ✅ NEW
+      filteredDocuments = [...documentData];
+      
+      // Reset pagination and sort
+      documentsPagination.currentPage = 1;
+      documentsSortState = { column: null, direction: null };
+      
+      renderDocumentsTable();
+      Logger.log('DOCUMENT_FILTERS_CLEARED', {});
+    }
+
+    /* ================================================================
+       SECTION 10: MODALS & INTERACTIONS
+       (Order Details, Save Comments, Edit Status, etc.)
        ================================================================ */
     
     /**
@@ -1644,6 +2340,9 @@
       const statusDisplay = status.split('-').map(w => 
         w.charAt(0).toUpperCase() + w.slice(1)
       ).join(' ');
+      
+      // ✅ FIX: Use submissionEmail if pickupEmail is empty
+      const displayEmail = order.pickupEmail || order.submissionEmail || 'N/A';
       
       let content = `
         <div style="margin-bottom: 20px;">
@@ -1677,7 +2376,7 @@
             </div>
             <div>
               <strong>Email:</strong><br>
-              ${order.pickupEmail || 'N/A'}
+              ${displayEmail}
             </div>
             <div>
               <strong>Phone:</strong><br>
@@ -1687,7 +2386,7 @@
         </div>
       `;
       
-      // ✅ Items Section (for both Amazon and Target)
+      // Items Section (for both Amazon and Target)
       if (order.items && order.items.length > 0) {
         content += `
           <div style="margin-bottom: 20px;">
@@ -1826,7 +2525,7 @@
         </div>
       `;
 
-      // ✅ NEW: Comments Section
+      // Comments Section
       content += `
         <div class="comments-section">
           <h3 style="margin-bottom: 16px; color: #212b36;">💬 Comments & Notes</h3>
@@ -1851,6 +2550,7 @@
             <button 
               class="btn btn-primary" 
               style="margin-top: 8px;"
+              id="saveCommentsBtn"
               onclick="saveOrderComments('${order.id}', '${platform}')"
             >
               Save Comments
@@ -1862,7 +2562,7 @@
       content += `
         <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid #e1e3e5; margin-top: 20px;">
           <button class="btn btn-secondary" onclick="closeOrderModal()">Close</button>
-          <button class="btn btn-primary" onclick="editOrderStatus('${order.id}', '${platform}')">
+          <button class="btn btn-primary" onclick="editOrderStatus('${order.id}', '${order.platform}')">
             Change Status
           </button>
         </div>
@@ -1874,20 +2574,25 @@
     }
 
     /**
-     * ✅ NEW: Save order comments
+     * Save order comments with loading spinner
      */
     function saveOrderComments(orderId, platform) {
       const newComments = document.getElementById('staffComments').value;
+      const btn = document.getElementById('saveCommentsBtn');
       
       Logger.log('SAVING_COMMENTS', { orderId, platform });
       
+      setButtonLoading(btn, true);
+      
       google.script.run
         .withSuccessHandler(function(result) {
+          setButtonLoading(btn, false);
+          
           if (result.success) {
             Logger.log('COMMENTS_SAVED', { orderId });
             showToast('Comments saved successfully', 'success');
             
-            // Update local data
+            // ✅ Update local data (NOT affecting spreadsheet order)
             const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
             const order = orders.find(o => o.id == orderId);
             if (order) {
@@ -1899,6 +2604,7 @@
           }
         })
         .withFailureHandler(function(error) {
+          setButtonLoading(btn, false);
           Logger.error('COMMENTS_SAVE_ERROR', error);
           showToast('Error saving comments', 'error');
         })
@@ -2064,7 +2770,7 @@
         
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
           <button class="btn btn-secondary" onclick="closeOrderModal()">Cancel</button>
-          <button class="btn btn-primary" onclick="saveStatusChange('${orderId}', '${platform}')">
+          <button class="btn btn-primary" id="updateStatusBtn" onclick="saveStatusChange('${orderId}', '${platform}')">
             Update Status
           </button>
         </div>
@@ -2075,7 +2781,7 @@
     }
     
     /**
-     * Save status change
+     * Save status change with loading spinner
      */
     function saveStatusChange(orderId, platform) {
       const newStatus = document.getElementById('newStatusSelect').value;
@@ -2087,17 +2793,17 @@
       
       Logger.log('ORDER_STATUS_SAVE_STARTED', { orderId, platform, newStatus });
       
-      const saveBtn = event ? event.target : document.querySelector('#orderModal .btn-primary');
-      const originalText = saveBtn.textContent;
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Updating...';
+      const btn = document.getElementById('updateStatusBtn');
+      setButtonLoading(btn, true);
       
       google.script.run
         .withSuccessHandler(function(result) {
+          setButtonLoading(btn, false);
+          
           if (result.success) {
             Logger.log('ORDER_STATUS_SAVE_SUCCESS', { orderId, newStatus });
             
-            // Update local data
+            // ✅ Update local data (NOT affecting spreadsheet order)
             const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
             const order = orders.find(o => o.id == orderId || String(o.id) === String(orderId));
             if (order) {
@@ -2110,15 +2816,12 @@
             showToast('Status updated successfully', 'success');
           } else {
             Logger.error('ORDER_STATUS_SAVE_FAILED', result.message);
-            saveBtn.disabled = false;
-            saveBtn.textContent = originalText;
             showToast('Failed to update status: ' + result.message, 'error');
           }
         })
         .withFailureHandler(function(error) {
+          setButtonLoading(btn, false);
           Logger.error('ORDER_STATUS_SAVE_ERROR', error);
-          saveBtn.disabled = false;
-          saveBtn.textContent = originalText;
           showToast('Error updating status', 'error');
         })
         .updateOrderStatus(orderId, platform, newStatus);
@@ -2148,7 +2851,7 @@
     }
 
     /* ================================================================
-       SECTION 9: ✅ NEW - CREATE ORDER MODAL
+       SECTION 11: CREATE ORDER MODAL
        ================================================================ */
     
     /**
@@ -2252,7 +2955,7 @@
     }
     
     /**
-     * Submit new order
+     * Submit new order with loading spinner
      */
     function submitNewOrder(event) {
       event.preventDefault();
@@ -2262,7 +2965,7 @@
       const platform = document.getElementById('orderPlatform').value;
       
       // Collect form data
-      const orderData = {
+      const orderDataToSubmit = {
         platform: platform,
         organization: document.getElementById('orderOrganization').value,
         eventName: document.getElementById('orderEventName').value,
@@ -2275,19 +2978,19 @@
       
       // Platform-specific data
       if (platform === 'amazon') {
-        orderData.wishlistLink = document.getElementById('orderWishlistLink').value;
-        orderData.totalOrder = document.getElementById('orderTotalOrder').value;
+        orderDataToSubmit.wishlistLink = document.getElementById('orderWishlistLink').value;
+        orderDataToSubmit.totalOrder = document.getElementById('orderTotalOrder').value;
       } else if (platform === 'target') {
-        orderData.cartTotal = document.getElementById('orderCartTotal').value;
+        orderDataToSubmit.cartTotal = document.getElementById('orderCartTotal').value;
         
         // Collect items
-        orderData.items = [];
+        orderDataToSubmit.items = [];
         for (let i = 1; i <= targetItemCount; i++) {
           const urlInput = document.querySelector(`[name="itemUrl${i}"]`);
           const qtyInput = document.querySelector(`[name="itemQty${i}"]`);
           
           if (urlInput && urlInput.value) {
-            orderData.items.push({
+            orderDataToSubmit.items.push({
               url: urlInput.value,
               quantity: qtyInput ? qtyInput.value : '1'
             });
@@ -2296,13 +2999,14 @@
       }
       
       // Disable submit button
-      const submitBtn = event.target.querySelector('[type="submit"]');
-      submitBtn.disabled = true;
-      submitBtn.textContent = 'Creating...';
+      const submitBtn = document.getElementById('createOrderBtn');
+      setButtonLoading(submitBtn, true);
       
       // Submit to backend
       google.script.run
         .withSuccessHandler(function(result) {
+          setButtonLoading(submitBtn, false);
+          
           if (result.success) {
             Logger.log('ORDER_CREATED', { confirmationNumber: result.confirmationNumber });
             showToast(`Order created successfully! Confirmation: ${result.confirmationNumber}`, 'success');
@@ -2311,25 +3015,22 @@
           } else {
             Logger.error('ORDER_CREATION_FAILED', result.message);
             showToast('Failed to create order: ' + result.message, 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Create Order';
           }
         })
         .withFailureHandler(function(error) {
+          setButtonLoading(submitBtn, false);
           Logger.error('ORDER_CREATION_ERROR', error);
           showToast('Error creating order', 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Order';
         })
-        .createManualOrder(orderData);
+        .createManualOrder(orderDataToSubmit);
     }
 
     /* ================================================================
-       SECTION 10: ✅ NEW - SUBMIT DOCUMENTS MODAL
+       SECTION 12: SUBMIT DOCUMENTS MODAL
        ================================================================ */
     
     /**
-     * ✅ NEW: Handle file selection and validation
+     * Handle file selection and validation
      */
     function handleFileSelect(input, fileType) {
       const file = input.files[0];
@@ -2409,7 +3110,7 @@
       // Reset form
       document.getElementById('submitDocumentsForm').reset();
       
-      // ✅ Clear file state
+      // Clear file state
       documentFiles = {};
       
       // Clear file status messages
@@ -2433,7 +3134,7 @@
     }
     
     /**
-     * Submit new documents
+     * Submit new documents with loading spinner
      */
     function submitNewDocuments(event) {
       event.preventDefault();
@@ -2451,7 +3152,7 @@
         notes: document.getElementById('docNotes').value
       };
       
-      // ✅ Add file data if any files were selected
+      // Add file data if any files were selected
       if (Object.keys(documentFiles).length > 0) {
         docData.fileData = documentFiles;
         Logger.log('FILES_INCLUDED', { fileCount: Object.keys(documentFiles).length });
@@ -2459,19 +3160,13 @@
       
       // Disable submit button
       const submitBtn = document.getElementById('submitDocBtn');
-      const originalText = submitBtn.textContent;
-      submitBtn.disabled = true;
-      
-      // Show progress if files are being uploaded
-      if (docData.fileData) {
-        submitBtn.textContent = 'Uploading files...';
-      } else {
-        submitBtn.textContent = 'Submitting...';
-      }
+      setButtonLoading(submitBtn, true);
       
       // Submit to backend
       google.script.run
         .withSuccessHandler(function(result) {
+          setButtonLoading(submitBtn, false);
+          
           if (result.success) {
             Logger.log('DOCUMENTS_SUBMITTED', { confirmationNumber: result.confirmationNumber });
             showToast(`Documents submitted successfully! Confirmation: ${result.confirmationNumber}`, 'success');
@@ -2480,77 +3175,18 @@
           } else {
             Logger.error('DOCUMENT_SUBMISSION_FAILED', result.message);
             showToast('Failed to submit documents: ' + result.message, 'error');
-            submitBtn.disabled = false;
-            submitBtn.textContent = originalText;
           }
         })
         .withFailureHandler(function(error) {
+          setButtonLoading(submitBtn, false);
           Logger.error('DOCUMENT_SUBMISSION_ERROR', error);
           showToast('Error submitting documents: ' + error.message, 'error');
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalText;
         })
         .submitManualDocuments(docData);
     }
 
     /* ================================================================
-       SECTION 11: FILTERS & SEARCH
-       ================================================================ */
-    function applyFilters() {
-      Logger.log('FILTERS_APPLIED', {});
-      
-      const searchTerm = document.getElementById('search-input').value.toLowerCase().trim();
-      const platformFilter = document.getElementById('platform-filter').value;
-      const statusFilter = document.getElementById('status-filter').value;
-      
-      const allOrders = [
-        ...orderData.amazon.map(o => ({ ...o, platform: 'amazon' })),
-        ...orderData.target.map(o => ({ ...o, platform: 'target' }))
-      ];
-      
-      filteredOrders = allOrders.filter(order => {
-        // Search filter
-        const searchFields = [
-          order.organization,
-          order.eventName,
-          order.pickupPerson,
-          order.pickupEmail,
-          order.orderNumbers,
-          order.orderConfirmation
-        ].filter(String).join(' ').toLowerCase();
-        
-        const matchesSearch = !searchTerm || searchFields.includes(searchTerm);
-        
-        // Platform filter
-        const matchesPlatform = !platformFilter || order.platform === platformFilter;
-        
-        // Status filter
-        const matchesStatus = !statusFilter || order.status === statusFilter;
-        
-        return matchesSearch && matchesPlatform && matchesStatus;
-      });
-      
-      // Sort by submission ID descending
-      filteredOrders.sort((a, b) => {
-        const aId = parseInt(a.submissionId || a.id || 0);
-        const bId = parseInt(b.submissionId || b.id || 0);
-        return bId - aId;
-      });
-      
-      renderOrdersTable();
-    }
-    
-    function clearFilters() {
-      document.getElementById('search-input').value = '';
-      document.getElementById('platform-filter').value = '';
-      document.getElementById('status-filter').value = '';
-      
-      displayOrders();
-      Logger.log('FILTERS_CLEARED', {});
-    }
-
-    /* ================================================================
-       SECTION 12: UTILITY FUNCTIONS
+       SECTION 13: UTILITY FUNCTIONS
        ================================================================ */
     function showToast(message, type = 'info') {
       const toast = document.createElement('div');
@@ -2726,7 +3362,7 @@
     }
 
     /* ================================================================
-       SECTION 13: INITIALIZATION
+       SECTION 14: INITIALIZATION
        ================================================================ */
     document.addEventListener('DOMContentLoaded', function() {
       Logger.log('APP_STARTED', { timestamp: new Date().toISOString() });
@@ -2773,7 +3409,7 @@
         }
       }
 
-      // ✅ Create Order Modal handlers
+      // Create Order Modal handlers
       const createOrderModal = document.getElementById('createOrderModal');
       if (createOrderModal) {
         createOrderModal.addEventListener('click', function(event) {
@@ -2783,7 +3419,7 @@
         });
       }
 
-      // ✅ Submit Documents Modal handlers
+      // Submit Documents Modal handlers
       const submitDocsModal = document.getElementById('submitDocumentsModal');
       if (submitDocsModal) {
         submitDocsModal.addEventListener('click', function(event) {
@@ -2819,6 +3455,16 @@
         }
       });
       
+      // Add Enter key support for document search
+      const docSearchInput = document.getElementById('doc-search-input');
+      if (docSearchInput) {
+        docSearchInput.addEventListener('keypress', function(e) {
+          if (e.key === 'Enter') {
+            applyDocumentFilters();
+          }
+        });
+      }
+      
       // Initial data load
       loadOrderData();
     });
@@ -2828,7 +3474,8 @@
     window.viewLogs = () => Logger.viewLogs();
     window.clearLogs = () => Logger.clearLogs();
     
-    console.log('%c📊 Order Management System v3', 'font-size: 16px; font-weight: bold; color: #005bd3;');
+    console.log('%c📊 Order Management System v3 - ENHANCED', 'font-size: 16px; font-weight: bold; color: #005bd3;');
+    console.log('%c✅ Features: Pagination, Club Filters, Column Sorting', 'font-size: 14px; color: #10b981;');
     console.log('%cDebug commands:', 'font-weight: bold;');
     console.log('  viewLogs()  - View all frontend logs');
     console.log('  clearLogs() - Clear frontend logs');
