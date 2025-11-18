@@ -659,11 +659,11 @@ function getNamesData() {
 // ========================================
 
 /**
- * Update order status with logging
+ * Update order status with employee tracking
  */
-function updateOrderStatus(orderId, platform, newStatus) {
+function updateOrderStatus(orderId, platform, newStatus, processedBy) {
   try {
-    console.log(`Updating status: ID=${orderId}, Platform=${platform}, Status=${newStatus}`);
+    console.log(`Updating status: ID=${orderId}, Platform=${platform}, Status=${newStatus}, By=${processedBy}`);
     
     // Validate status
     const statusMap = {
@@ -683,6 +683,7 @@ function updateOrderStatus(orderId, platform, newStatus) {
     
     const displayStatus = statusMap[normalizedStatus];
     
+    // Validate platform
     const sheetMap = {
       'amazon': 'AmazonOrders',
       'target': 'TargetOrders',
@@ -717,29 +718,47 @@ function updateOrderStatus(orderId, platform, newStatus) {
       throw new Error(`Order with ID ${orderId} not found`);
     }
     
-    // Find or create status column
+    // ✅ NEW: Find or create all needed columns
     let statusColumnIndex = findColumnIndex(headers, 'Order_Status');
     if (statusColumnIndex === -1) {
       statusColumnIndex = headers.length;
       sheet.getRange(1, statusColumnIndex + 1).setValue('Order_Status');
     }
     
-    // Update status
+    let processedByIndex = findColumnIndex(headers, 'Processed_By');
+    if (processedByIndex === -1) {
+      processedByIndex = headers.length;
+      sheet.getRange(1, processedByIndex + 1).setValue('Processed_By');
+    }
+    
+    let timeProcessedIndex = findColumnIndex(headers, 'Time_Processed_By');
+    if (timeProcessedIndex === -1) {
+      timeProcessedIndex = headers.length;
+      sheet.getRange(1, timeProcessedIndex + 1).setValue('Time_Processed_By');
+    }
+    
+    // ✅ UPDATE: Set all three values
     sheet.getRange(foundRow + 1, statusColumnIndex + 1).setValue(displayStatus);
+    sheet.getRange(foundRow + 1, processedByIndex + 1).setValue(processedBy || 'Unknown');
+    sheet.getRange(foundRow + 1, timeProcessedIndex + 1).setValue(getFormattedTimestamp());
     
     // Log success
     logAction('ORDER_STATUS_UPDATED', {
       orderId: orderId,
       platform: platform,
       oldStatus: data[foundRow][statusColumnIndex] || 'Unknown',
-      newStatus: displayStatus
+      newStatus: displayStatus,
+      processedBy: processedBy,
+      timestamp: getFormattedTimestamp()
     });
     
-    console.log(`✅ Updated status for row ${foundRow + 1} to: ${displayStatus}`);
+    console.log(`✅ Updated order ${orderId} - Status: ${displayStatus}, By: ${processedBy}`);
     
     return {
       success: true,
-      message: `Order status updated to: ${displayStatus}`
+      message: `Order status updated to: ${displayStatus}`,
+      processedBy: processedBy,
+      processedAt: getFormattedTimestamp()
     };
     
   } catch (error) {
