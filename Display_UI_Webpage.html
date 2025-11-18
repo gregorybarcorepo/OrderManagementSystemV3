@@ -566,6 +566,95 @@
       padding: 20px;
     }
 
+    /* ✅ NEW: Form Styles for Create Order/Document Modals */
+    .form-group {
+      margin-bottom: 16px;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--color-text);
+    }
+    
+    .form-label.required::after {
+      content: " *";
+      color: var(--color-danger);
+    }
+    
+    .form-input,
+    .form-textarea,
+    .form-select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #c9cccf;
+      border-radius: var(--radius-md);
+      font-size: 14px;
+      font-family: inherit;
+    }
+    
+    .form-input:focus,
+    .form-textarea:focus,
+    .form-select:focus {
+      outline: none;
+      border-color: var(--color-primary);
+      box-shadow: 0 0 0 3px rgba(0, 91, 211, 0.1);
+    }
+    
+    .form-textarea {
+      min-height: 80px;
+      resize: vertical;
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    .item-entry {
+      padding: 12px;
+      background: #f9fafb;
+      border-radius: var(--radius-md);
+      margin-bottom: 12px;
+    }
+    
+    .item-entry-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .item-number {
+      font-weight: 600;
+      font-size: 13px;
+      color: var(--color-text-light);
+    }
+    
+    .btn-remove-item {
+      background: none;
+      border: none;
+      color: var(--color-danger);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 4px 8px;
+    }
+    
+    .btn-remove-item:hover {
+      background: #fee2e2;
+      border-radius: var(--radius-sm);
+    }
+
     /* ================================================================
        SECTION 10: NOTIFICATIONS (TOAST)
        ================================================================ */
@@ -616,6 +705,50 @@
       border-radius: var(--radius-md);
       box-shadow: var(--shadow-md);
       z-index: 9999;
+    }
+
+    /* ✅ NEW: Comments Section Styles */
+    .comments-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--color-border);
+    }
+    
+    .comments-readonly {
+      background: #f9fafb;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      margin-bottom: 16px;
+      border-left: 4px solid #3b82f6;
+    }
+    
+    .comments-readonly h4 {
+      font-size: 13px;
+      color: var(--color-text-light);
+      margin-bottom: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .comments-readonly p {
+      font-size: 14px;
+      color: var(--color-text);
+      line-height: 1.5;
+      margin: 0;
+    }
+    
+    .comments-editable {
+      margin-top: 16px;
+    }
+    
+    .comments-editable h4 {
+      font-size: 13px;
+      color: var(--color-text-light);
+      margin-bottom: 8px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
   </style>
 </head>
@@ -671,6 +804,8 @@
         <div class="orders-header">
           <h2 class="orders-title">Orders</h2>
           <div class="orders-actions">
+            <!-- ✅ NEW: Create Order Button -->
+            <button class="btn btn-primary" onclick="showCreateOrderModal()">➕ Create Order</button>
             <button class="btn btn-primary" onclick="loadOrderData()">Refresh</button>
             <button class="btn btn-secondary" onclick="exportData()">Export CSV</button>
           </div>
@@ -687,6 +822,8 @@
         <div class="orders-header">
           <h2 class="orders-title">Document Submissions</h2>
           <div class="orders-actions">
+            <!-- ✅ NEW: Submit Documents Button -->
+            <button class="btn btn-primary" onclick="showSubmitDocumentsModal()">➕ Submit Documents</button>
             <button class="btn btn-primary" onclick="loadDocumentData()">Refresh</button>
             <button class="btn btn-secondary" onclick="exportDocumentData()">Export CSV</button>
           </div>
@@ -713,8 +850,10 @@
   </div>
 
   <!-- ================================================================
-       MODALS (Order Details, Edit, etc.)
+       MODALS
        ================================================================ -->
+  
+  <!-- Order Details Modal -->
   <div id="orderModal" class="modal">
     <div class="modal-content">
       <div class="modal-header">
@@ -723,6 +862,190 @@
       </div>
       <div class="modal-body" id="modalBody">
         <!-- Order details populated here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ NEW: Create Order Modal -->
+  <div id="createOrderModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">➕ Create New Order</h2>
+        <span class="close" onclick="closeCreateOrderModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="createOrderForm" onsubmit="submitNewOrder(event)">
+          <!-- Platform Selection -->
+          <div class="form-group">
+            <label class="form-label required">Platform</label>
+            <select id="orderPlatform" class="form-select" required onchange="toggleOrderPlatformFields()">
+              <option value="">Select Platform</option>
+              <option value="amazon">Amazon</option>
+              <option value="target">Target</option>
+            </select>
+          </div>
+
+          <!-- Common Fields -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">Organization</label>
+              <input type="text" id="orderOrganization" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Event Name</label>
+              <input type="text" id="orderEventName" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">Event Date</label>
+            <input type="date" id="orderEventDate" class="form-input" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">Pickup Person</label>
+              <input type="text" id="orderPickupPerson" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Pickup Email</label>
+              <input type="email" id="orderPickupEmail" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Pickup Phone</label>
+            <input type="tel" id="orderPickupPhone" class="form-input">
+          </div>
+
+          <!-- Amazon-specific Fields -->
+          <div id="amazonFields" style="display: none;">
+            <div class="form-group">
+              <label class="form-label required">Amazon Wishlist Link</label>
+              <input type="url" id="orderWishlistLink" class="form-input">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Total Order Amount</label>
+              <input type="number" id="orderTotalOrder" class="form-input" step="0.01" min="0">
+            </div>
+          </div>
+
+          <!-- Target-specific Fields -->
+          <div id="targetFields" style="display: none;">
+            <div class="form-group">
+              <label class="form-label">Cart Total</label>
+              <input type="number" id="orderCartTotal" class="form-input" step="0.01" min="0">
+            </div>
+            <div id="targetItemsContainer">
+              <!-- Target items will be added here -->
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="addTargetItem()">+ Add Item</button>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea id="orderNotes" class="form-textarea"></textarea>
+          </div>
+
+          <div style="display: flex; gap: 12px; justify-content: flex-end; margin-top: 20px;">
+            <button type="button" class="btn btn-secondary" onclick="closeCreateOrderModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary">Create Order</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ NEW: Submit Documents Modal -->
+  <div id="submitDocumentsModal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title">📄 Submit Documents</h2>
+        <span class="close" onclick="closeSubmitDocumentsModal()">&times;</span>
+      </div>
+      <div class="modal-body">
+        <form id="submitDocumentsForm" onsubmit="submitNewDocuments(event)">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">First Name</label>
+              <input type="text" id="docFirstName" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Last Name</label>
+              <input type="text" id="docLastName" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">Email</label>
+            <input type="email" id="docEmail" class="form-input" required>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label required">Organization</label>
+            <input type="text" id="docOrganization" class="form-input" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label required">Event Name</label>
+              <input type="text" id="docEventName" class="form-input" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label required">Event Date</label>
+              <input type="date" id="docEventDate" class="form-input" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Notes</label>
+            <textarea id="docNotes" class="form-textarea" placeholder="Any additional notes about this submission..."></textarea>
+          </div>
+
+          <!-- ✅ File Upload Section -->
+          <div style="margin: 20px 0; padding: 20px; background: #f9fafb; border-radius: var(--radius-md); border: 2px dashed #c9cccf;">
+            <h3 style="margin: 0 0 16px 0; font-size: 15px; font-weight: 600; color: var(--color-text);">📎 Upload Documents</h3>
+            
+            <div class="form-group">
+              <label class="form-label">Non-PO File</label>
+              <input type="file" id="docNonPO" class="form-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" onchange="handleFileSelect(this, 'nonPO')">
+              <small style="color: #6d7175; font-size: 12px;">PDF, Word, Excel, or Image (Max 10MB)</small>
+              <div id="nonPO-status" style="margin-top: 4px; font-size: 12px;"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Sign-In Sheet</label>
+              <input type="file" id="docSignIn" class="form-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" onchange="handleFileSelect(this, 'signIn')">
+              <small style="color: #6d7175; font-size: 12px;">PDF, Word, Excel, or Image (Max 10MB)</small>
+              <div id="signIn-status" style="margin-top: 4px; font-size: 12px;"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Invoice</label>
+              <input type="file" id="docInvoice" class="form-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" onchange="handleFileSelect(this, 'invoice')">
+              <small style="color: #6d7175; font-size: 12px;">PDF, Word, Excel, or Image (Max 10MB)</small>
+              <div id="invoice-status" style="margin-top: 4px; font-size: 12px;"></div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Event Flyer</label>
+              <input type="file" id="docEventFlyer" class="form-input" accept=".pdf,.doc,.docx,.xls,.xlsx,.jpg,.jpeg,.png,.gif" onchange="handleFileSelect(this, 'eventFlyer')">
+              <small style="color: #6d7175; font-size: 12px;">PDF, Word, Excel, or Image (Max 10MB)</small>
+              <div id="eventFlyer-status" style="margin-top: 4px; font-size: 12px;"></div>
+            </div>
+
+            <div style="padding: 12px; background: #dbeafe; border-radius: var(--radius-sm); margin-top: 12px;">
+              <p style="font-size: 12px; color: #1e40af; margin: 0;">
+                💡 <strong>Tip:</strong> You can upload up to 4 files. At least one file is recommended but not required.
+              </p>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 12px; justify-content: flex-end;">
+            <button type="button" class="btn btn-secondary" onclick="closeSubmitDocumentsModal()">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="submitDocBtn">Submit Documents</button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
@@ -745,6 +1068,8 @@
     let filteredOrders = [];
     let currentEditOrder = null;
     let currentEditPlatform = null;
+    let targetItemCount = 0;
+    let documentFiles = {}; // ✅ NEW: Store uploaded document files
 
     /* ================================================================
        SECTION 2: LOGGING SYSTEM
@@ -761,7 +1086,6 @@
         
         console.log(`[${action}]`, details);
         
-        // Store in localStorage for debugging
         try {
           const logs = JSON.parse(localStorage.getItem('app_logs') || '[]');
           logs.push(logEntry);
@@ -1034,13 +1358,13 @@
         </div>
       `;
     }
-/* ================================================================
+
+    /* ================================================================
        SECTION 6: UI RENDERING - ORDERS TABLE
        ================================================================ */
     
     /**
      * Parse event date from various formats
-     * Returns Date object or null
      */
     function parseEventDate(dateString) {
       if (!dateString || dateString === 'N/A' || dateString === '') {
@@ -1048,11 +1372,8 @@
       }
       
       try {
-        // Try parsing various date formats
-        // MM/DD/YYYY, M/D/YYYY, YYYY-MM-DD, etc.
         const date = new Date(dateString);
         
-        // Check if date is valid
         if (isNaN(date.getTime())) {
           return null;
         }
@@ -1072,22 +1393,18 @@
         ...orderData.target.map(o => ({ ...o, platform: 'target' }))
       ];
       
-      // ✅ Sort by Event Date (most recent first) then by submission ID
+      // Sort by Event Date (most recent first) then by submission ID
       allOrders.sort((a, b) => {
-        // Parse event dates
         const dateA = parseEventDate(a.eventDate);
         const dateB = parseEventDate(b.eventDate);
         
-        // If both have valid dates, sort by date (descending - newest first)
         if (dateA && dateB) {
           return dateB - dateA;
         }
         
-        // If only one has a date, prioritize it
         if (dateA && !dateB) return -1;
         if (!dateA && dateB) return 1;
         
-        // If neither has a date, sort by submission ID (descending)
         const aId = parseInt(a.submissionId || a.id || 0);
         const bId = parseInt(b.submissionId || b.id || 0);
         return bId - aId;
@@ -1133,7 +1450,7 @@
       filteredOrders.slice(0, 100).forEach(order => {
         const total = order.platform === 'amazon' ? order.totalOrder : order.cartTotal;
         
-        // ✅ Get actual platform order numbers
+        // Get platform order numbers
         let orderIdDisplay = 'N/A';
         if (order.platform === 'amazon') {
           orderIdDisplay = order.orderNumbers || 'Pending';
@@ -1141,26 +1458,22 @@
           orderIdDisplay = order.orderConfirmation || 'Pending';
         }
         
-        // ✅ Handle multiple order numbers (comma, semicolon, or newline separated)
+        // Handle multiple order numbers
         let orderIdHtml = '';
         if (orderIdDisplay && orderIdDisplay !== 'N/A' && orderIdDisplay !== 'Pending') {
-          // Split by comma, semicolon, or newline
           const orderIds = orderIdDisplay
             .split(/[,;\n]/)
             .map(id => id.trim())
             .filter(id => id.length > 0);
           
           if (orderIds.length > 1) {
-            // Multiple order IDs - stack vertically
             orderIdHtml = orderIds.map(id => 
               `<div style="padding: 2px 0; font-size: 12px;">${id}</div>`
             ).join('');
           } else {
-            // Single order ID
             orderIdHtml = orderIds[0] || orderIdDisplay;
           }
         } else {
-          // Pending or N/A
           orderIdHtml = `<span style="color: #f59e0b; font-style: italic;">${orderIdDisplay}</span>`;
         }
         
@@ -1252,7 +1565,7 @@
       documents.forEach(doc => {
         const fullName = [doc.firstName, doc.lastName].filter(n => n).join(' ') || 'N/A';
         
-        // ✅ Count ONLY 4 file types
+        // Count ONLY 4 file types
         const docFiles = [
           { field: 'nonPOFile', label: 'Non-PO' },
           { field: 'signInFile', label: 'Sign-In' },
@@ -1297,11 +1610,13 @@
       container.innerHTML = html;
       Logger.log('DOCUMENTS_RENDERED', { count: documents.length });
     }
+
     /* ================================================================
-       SECTION 8: MODALS & INTERACTIONS - COMPLETE
+       SECTION 8: MODALS & INTERACTIONS
        ================================================================ */
- /**
-     * Show order details modal
+    
+    /**
+     * Show order details modal with comments
      */
     function showOrderDetails(orderId, platform) {
       Logger.log('ORDER_DETAILS_OPENED', { orderId, platform });
@@ -1389,9 +1704,15 @@
         `;
         
         order.items.forEach((item, index) => {
+          // For Target orders with URLs, show as clickable link
+          let itemDisplay = item.name;
+          if (platform === 'target' && item.url) {
+            itemDisplay = `<a href="${item.url}" target="_blank" style="color: #005bd3; text-decoration: underline;">${item.name}</a>`;
+          }
+          
           content += `
             <tr style="border-bottom: 1px solid #e1e3e5;">
-              <td style="padding: 10px 8px; font-size: 14px;">${item.name}</td>
+              <td style="padding: 10px 8px; font-size: 14px;">${itemDisplay}</td>
               <td style="padding: 10px 8px; text-align: center; font-weight: 600; font-size: 14px;">${item.quantity}</td>
             </tr>
           `;
@@ -1413,7 +1734,6 @@
       `;
       
       if (platform === 'amazon') {
-        // Amazon order numbers
         const orderNumbers = order.orderNumbers || 'Pending';
         let orderNumbersDisplay = orderNumbers;
         
@@ -1455,7 +1775,6 @@
           ` : ''}
         `;
       } else {
-        // Target order confirmation
         const orderConfirmation = order.orderConfirmation || 'Pending';
         let confirmationDisplay = orderConfirmation;
         
@@ -1490,7 +1809,7 @@
         `;
       }
       
-      // Backup items if they exist
+      // Backup items
       if (order.backupItems && order.backupItems !== 'N/A' && order.backupItems.trim() !== '') {
         content += `
           <div style="grid-column: 1 / -1;">
@@ -1502,23 +1821,46 @@
         `;
       }
       
-      // Form notes if they exist
-      if (order.formNotes && order.formNotes !== 'N/A' && order.formNotes.trim() !== '') {
-        content += `
-          <div style="grid-column: 1 / -1;">
-            <strong>Submitter Notes:</strong><br>
-            <div style="margin-top: 8px; padding: 8px; background: #e0f2fe; border-radius: 6px; color: #075985;">
-              ${order.formNotes}
-            </div>
-          </div>
-        `;
-      }
-      
       content += `
           </div>
         </div>
-        
-        <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid #e1e3e5;">
+      `;
+
+      // ✅ NEW: Comments Section
+      content += `
+        <div class="comments-section">
+          <h3 style="margin-bottom: 16px; color: #212b36;">💬 Comments & Notes</h3>
+          
+          <!-- Form Submitter Notes (Read-only) -->
+          ${order.formNotes && order.formNotes !== 'N/A' && order.formNotes.trim() !== '' ? `
+            <div class="comments-readonly">
+              <h4>📝 Form Submitter Notes</h4>
+              <p>${order.formNotes}</p>
+            </div>
+          ` : ''}
+          
+          <!-- Staff Comments (Editable) -->
+          <div class="comments-editable">
+            <h4>✏️ Staff Comments</h4>
+            <textarea 
+              id="staffComments" 
+              class="form-textarea" 
+              style="margin-top: 8px;"
+              placeholder="Add notes for staff..."
+            >${order.comments || ''}</textarea>
+            <button 
+              class="btn btn-primary" 
+              style="margin-top: 8px;"
+              onclick="saveOrderComments('${order.id}', '${platform}')"
+            >
+              Save Comments
+            </button>
+          </div>
+        </div>
+      `;
+      
+      content += `
+        <div style="display: flex; gap: 12px; justify-content: flex-end; padding-top: 20px; border-top: 1px solid #e1e3e5; margin-top: 20px;">
           <button class="btn btn-secondary" onclick="closeOrderModal()">Close</button>
           <button class="btn btn-primary" onclick="editOrderStatus('${order.id}', '${platform}')">
             Change Status
@@ -1529,6 +1871,38 @@
       modalBody.innerHTML = content;
       modal.style.display = 'block';
       document.body.style.overflow = 'hidden';
+    }
+
+    /**
+     * ✅ NEW: Save order comments
+     */
+    function saveOrderComments(orderId, platform) {
+      const newComments = document.getElementById('staffComments').value;
+      
+      Logger.log('SAVING_COMMENTS', { orderId, platform });
+      
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            Logger.log('COMMENTS_SAVED', { orderId });
+            showToast('Comments saved successfully', 'success');
+            
+            // Update local data
+            const orders = platform === 'amazon' ? orderData.amazon : orderData.target;
+            const order = orders.find(o => o.id == orderId);
+            if (order) {
+              order.comments = newComments;
+            }
+          } else {
+            Logger.error('COMMENTS_SAVE_FAILED', result.message);
+            showToast('Failed to save comments: ' + result.message, 'error');
+          }
+        })
+        .withFailureHandler(function(error) {
+          Logger.error('COMMENTS_SAVE_ERROR', error);
+          showToast('Error saving comments', 'error');
+        })
+        .updateOrderComments(orderId, platform, newComments);
     }
     
     /**
@@ -1713,7 +2087,6 @@
       
       Logger.log('ORDER_STATUS_SAVE_STARTED', { orderId, platform, newStatus });
       
-      // Get the button that was clicked
       const saveBtn = event ? event.target : document.querySelector('#orderModal .btn-primary');
       const originalText = saveBtn.textContent;
       saveBtn.disabled = true;
@@ -1752,7 +2125,7 @@
     }
     
     /**
-     * Close modal - COMPLETE FIX
+     * Close modal
      */
     function closeOrderModal() {
       const modal = document.getElementById('orderModal');
@@ -1762,13 +2135,9 @@
         return;
       }
       
-      // Hide modal
       modal.style.display = 'none';
-      
-      // Re-enable body scroll
       document.body.style.overflow = 'auto';
       
-      // Clear modal content
       const modalBody = document.getElementById('modalBody');
       const modalTitle = document.getElementById('modalTitle');
       
@@ -1777,8 +2146,355 @@
       
       Logger.log('MODAL_CLOSED', {});
     }
+
     /* ================================================================
-       SECTION 9: FILTERS & SEARCH
+       SECTION 9: ✅ NEW - CREATE ORDER MODAL
+       ================================================================ */
+    
+    /**
+     * Show create order modal
+     */
+    function showCreateOrderModal() {
+      Logger.log('CREATE_ORDER_MODAL_OPENED', {});
+      
+      const modal = document.getElementById('createOrderModal');
+      
+      // Reset form
+      document.getElementById('createOrderForm').reset();
+      document.getElementById('amazonFields').style.display = 'none';
+      document.getElementById('targetFields').style.display = 'none';
+      document.getElementById('targetItemsContainer').innerHTML = '';
+      targetItemCount = 0;
+      
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    
+    /**
+     * Close create order modal
+     */
+    function closeCreateOrderModal() {
+      const modal = document.getElementById('createOrderModal');
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+      Logger.log('CREATE_ORDER_MODAL_CLOSED', {});
+    }
+    
+    /**
+     * Toggle platform-specific fields
+     */
+    function toggleOrderPlatformFields() {
+      const platform = document.getElementById('orderPlatform').value;
+      const amazonFields = document.getElementById('amazonFields');
+      const targetFields = document.getElementById('targetFields');
+      
+      if (platform === 'amazon') {
+        amazonFields.style.display = 'block';
+        targetFields.style.display = 'none';
+        document.getElementById('orderWishlistLink').required = true;
+      } else if (platform === 'target') {
+        amazonFields.style.display = 'none';
+        targetFields.style.display = 'block';
+        document.getElementById('orderWishlistLink').required = false;
+        
+        // Add first item field if empty
+        if (targetItemCount === 0) {
+          addTargetItem();
+        }
+      } else {
+        amazonFields.style.display = 'none';
+        targetFields.style.display = 'none';
+      }
+    }
+    
+    /**
+     * Add Target item entry
+     */
+    function addTargetItem() {
+      if (targetItemCount >= 10) {
+        showToast('Maximum 10 items allowed', 'error');
+        return;
+      }
+      
+      targetItemCount++;
+      const container = document.getElementById('targetItemsContainer');
+      
+      const itemHtml = `
+        <div class="item-entry" id="targetItem${targetItemCount}">
+          <div class="item-entry-header">
+            <span class="item-number">Item ${targetItemCount}</span>
+            <button type="button" class="btn-remove-item" onclick="removeTargetItem(${targetItemCount})">
+              ✕ Remove
+            </button>
+          </div>
+          <div class="form-group">
+            <label class="form-label required">Item URL</label>
+            <input type="url" class="form-input" name="itemUrl${targetItemCount}" required>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Quantity</label>
+            <input type="number" class="form-input" name="itemQty${targetItemCount}" value="1" min="1">
+          </div>
+        </div>
+      `;
+      
+      container.insertAdjacentHTML('beforeend', itemHtml);
+    }
+    
+    /**
+     * Remove Target item entry
+     */
+    function removeTargetItem(itemNum) {
+      const itemElement = document.getElementById(`targetItem${itemNum}`);
+      if (itemElement) {
+        itemElement.remove();
+      }
+    }
+    
+    /**
+     * Submit new order
+     */
+    function submitNewOrder(event) {
+      event.preventDefault();
+      
+      Logger.log('SUBMITTING_NEW_ORDER', {});
+      
+      const platform = document.getElementById('orderPlatform').value;
+      
+      // Collect form data
+      const orderData = {
+        platform: platform,
+        organization: document.getElementById('orderOrganization').value,
+        eventName: document.getElementById('orderEventName').value,
+        eventDate: document.getElementById('orderEventDate').value,
+        pickupPerson: document.getElementById('orderPickupPerson').value,
+        pickupEmail: document.getElementById('orderPickupEmail').value,
+        pickupPhone: document.getElementById('orderPickupPhone').value,
+        notes: document.getElementById('orderNotes').value
+      };
+      
+      // Platform-specific data
+      if (platform === 'amazon') {
+        orderData.wishlistLink = document.getElementById('orderWishlistLink').value;
+        orderData.totalOrder = document.getElementById('orderTotalOrder').value;
+      } else if (platform === 'target') {
+        orderData.cartTotal = document.getElementById('orderCartTotal').value;
+        
+        // Collect items
+        orderData.items = [];
+        for (let i = 1; i <= targetItemCount; i++) {
+          const urlInput = document.querySelector(`[name="itemUrl${i}"]`);
+          const qtyInput = document.querySelector(`[name="itemQty${i}"]`);
+          
+          if (urlInput && urlInput.value) {
+            orderData.items.push({
+              url: urlInput.value,
+              quantity: qtyInput ? qtyInput.value : '1'
+            });
+          }
+        }
+      }
+      
+      // Disable submit button
+      const submitBtn = event.target.querySelector('[type="submit"]');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating...';
+      
+      // Submit to backend
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            Logger.log('ORDER_CREATED', { confirmationNumber: result.confirmationNumber });
+            showToast(`Order created successfully! Confirmation: ${result.confirmationNumber}`, 'success');
+            closeCreateOrderModal();
+            loadOrderData();
+          } else {
+            Logger.error('ORDER_CREATION_FAILED', result.message);
+            showToast('Failed to create order: ' + result.message, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Create Order';
+          }
+        })
+        .withFailureHandler(function(error) {
+          Logger.error('ORDER_CREATION_ERROR', error);
+          showToast('Error creating order', 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Order';
+        })
+        .createManualOrder(orderData);
+    }
+
+    /* ================================================================
+       SECTION 10: ✅ NEW - SUBMIT DOCUMENTS MODAL
+       ================================================================ */
+    
+    /**
+     * ✅ NEW: Handle file selection and validation
+     */
+    function handleFileSelect(input, fileType) {
+      const file = input.files[0];
+      const statusDiv = document.getElementById(`${fileType}-status`);
+      
+      if (!file) {
+        delete documentFiles[fileType];
+        statusDiv.innerHTML = '';
+        return;
+      }
+      
+      // Validate file size (10MB max)
+      const maxSize = 10 * 1024 * 1024;
+      if (file.size > maxSize) {
+        statusDiv.innerHTML = '<span style="color: #ef4444;">❌ File too large (max 10MB)</span>';
+        input.value = '';
+        delete documentFiles[fileType];
+        return;
+      }
+      
+      // Validate file type
+      const allowedTypes = [
+        'application/pdf',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'image/jpeg',
+        'image/png',
+        'image/gif'
+      ];
+      
+      if (!allowedTypes.includes(file.type)) {
+        statusDiv.innerHTML = '<span style="color: #ef4444;">❌ Invalid file type</span>';
+        input.value = '';
+        delete documentFiles[fileType];
+        return;
+      }
+      
+      // Show loading status
+      statusDiv.innerHTML = '<span style="color: #3b82f6;">⏳ Reading file...</span>';
+      
+      // Read file as base64
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const base64Data = e.target.result.split(',')[1]; // Remove data URL prefix
+        
+        documentFiles[fileType] = {
+          fileName: file.name,
+          mimeType: file.type,
+          data: base64Data,
+          size: file.size
+        };
+        
+        const fileSizeKB = (file.size / 1024).toFixed(1);
+        statusDiv.innerHTML = `<span style="color: #10b981;">✓ ${file.name} (${fileSizeKB} KB)</span>`;
+        
+        Logger.log('FILE_SELECTED', { fileType, fileName: file.name, size: file.size });
+      };
+      
+      reader.onerror = function() {
+        statusDiv.innerHTML = '<span style="color: #ef4444;">❌ Error reading file</span>';
+        delete documentFiles[fileType];
+      };
+      
+      reader.readAsDataURL(file);
+    }
+    
+    /**
+     * Show submit documents modal
+     */
+    function showSubmitDocumentsModal() {
+      Logger.log('SUBMIT_DOCUMENTS_MODAL_OPENED', {});
+      
+      const modal = document.getElementById('submitDocumentsModal');
+      
+      // Reset form
+      document.getElementById('submitDocumentsForm').reset();
+      
+      // ✅ Clear file state
+      documentFiles = {};
+      
+      // Clear file status messages
+      ['nonPO', 'signIn', 'invoice', 'eventFlyer'].forEach(fileType => {
+        const statusDiv = document.getElementById(`${fileType}-status`);
+        if (statusDiv) statusDiv.innerHTML = '';
+      });
+      
+      modal.style.display = 'block';
+      document.body.style.overflow = 'hidden';
+    }
+    
+    /**
+     * Close submit documents modal
+     */
+    function closeSubmitDocumentsModal() {
+      const modal = document.getElementById('submitDocumentsModal');
+      modal.style.display = 'none';
+      document.body.style.overflow = 'auto';
+      Logger.log('SUBMIT_DOCUMENTS_MODAL_CLOSED', {});
+    }
+    
+    /**
+     * Submit new documents
+     */
+    function submitNewDocuments(event) {
+      event.preventDefault();
+      
+      Logger.log('SUBMITTING_NEW_DOCUMENTS', {});
+      
+      // Collect form data
+      const docData = {
+        firstName: document.getElementById('docFirstName').value,
+        lastName: document.getElementById('docLastName').value,
+        email: document.getElementById('docEmail').value,
+        organization: document.getElementById('docOrganization').value,
+        eventName: document.getElementById('docEventName').value,
+        eventDate: document.getElementById('docEventDate').value,
+        notes: document.getElementById('docNotes').value
+      };
+      
+      // ✅ Add file data if any files were selected
+      if (Object.keys(documentFiles).length > 0) {
+        docData.fileData = documentFiles;
+        Logger.log('FILES_INCLUDED', { fileCount: Object.keys(documentFiles).length });
+      }
+      
+      // Disable submit button
+      const submitBtn = document.getElementById('submitDocBtn');
+      const originalText = submitBtn.textContent;
+      submitBtn.disabled = true;
+      
+      // Show progress if files are being uploaded
+      if (docData.fileData) {
+        submitBtn.textContent = 'Uploading files...';
+      } else {
+        submitBtn.textContent = 'Submitting...';
+      }
+      
+      // Submit to backend
+      google.script.run
+        .withSuccessHandler(function(result) {
+          if (result.success) {
+            Logger.log('DOCUMENTS_SUBMITTED', { confirmationNumber: result.confirmationNumber });
+            showToast(`Documents submitted successfully! Confirmation: ${result.confirmationNumber}`, 'success');
+            closeSubmitDocumentsModal();
+            loadDocumentData();
+          } else {
+            Logger.error('DOCUMENT_SUBMISSION_FAILED', result.message);
+            showToast('Failed to submit documents: ' + result.message, 'error');
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+          }
+        })
+        .withFailureHandler(function(error) {
+          Logger.error('DOCUMENT_SUBMISSION_ERROR', error);
+          showToast('Error submitting documents: ' + error.message, 'error');
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalText;
+        })
+        .submitManualDocuments(docData);
+    }
+
+    /* ================================================================
+       SECTION 11: FILTERS & SEARCH
        ================================================================ */
     function applyFilters() {
       Logger.log('FILTERS_APPLIED', {});
@@ -1834,7 +2550,7 @@
     }
 
     /* ================================================================
-       SECTION 10: UTILITY FUNCTIONS
+       SECTION 12: UTILITY FUNCTIONS
        ================================================================ */
     function showToast(message, type = 'info') {
       const toast = document.createElement('div');
@@ -2010,7 +2726,7 @@
     }
 
     /* ================================================================
-       SECTION 11: INITIALIZATION
+       SECTION 13: INITIALIZATION
        ================================================================ */
     document.addEventListener('DOMContentLoaded', function() {
       Logger.log('APP_STARTED', { timestamp: new Date().toISOString() });
@@ -2040,17 +2756,15 @@
         });
       });
       
-      // ✅ ADD: Modal backdrop click handler
+      // Modal backdrop click handler
       const modal = document.getElementById('orderModal');
       if (modal) {
         modal.addEventListener('click', function(event) {
-          // Only close if clicking the backdrop (not the content)
           if (event.target === modal) {
             closeOrderModal();
           }
         });
         
-        // Prevent clicks inside modal content from closing it
         const modalContent = modal.querySelector('.modal-content');
         if (modalContent) {
           modalContent.addEventListener('click', function(event) {
@@ -2058,13 +2772,42 @@
           });
         }
       }
+
+      // ✅ Create Order Modal handlers
+      const createOrderModal = document.getElementById('createOrderModal');
+      if (createOrderModal) {
+        createOrderModal.addEventListener('click', function(event) {
+          if (event.target === createOrderModal) {
+            closeCreateOrderModal();
+          }
+        });
+      }
+
+      // ✅ Submit Documents Modal handlers
+      const submitDocsModal = document.getElementById('submitDocumentsModal');
+      if (submitDocsModal) {
+        submitDocsModal.addEventListener('click', function(event) {
+          if (event.target === submitDocsModal) {
+            closeSubmitDocumentsModal();
+          }
+        });
+      }
       
-      // ✅ ADD: Escape key handler
+      // Escape key handler
       document.addEventListener('keydown', function(event) {
         if (event.key === 'Escape') {
-          const modal = document.getElementById('orderModal');
-          if (modal && modal.style.display === 'block') {
+          const orderModal = document.getElementById('orderModal');
+          const createModal = document.getElementById('createOrderModal');
+          const docsModal = document.getElementById('submitDocumentsModal');
+          
+          if (orderModal && orderModal.style.display === 'block') {
             closeOrderModal();
+          }
+          if (createModal && createModal.style.display === 'block') {
+            closeCreateOrderModal();
+          }
+          if (docsModal && docsModal.style.display === 'block') {
+            closeSubmitDocumentsModal();
           }
         }
       });
