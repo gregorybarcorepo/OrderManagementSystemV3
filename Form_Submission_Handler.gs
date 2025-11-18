@@ -1,7 +1,10 @@
 /**
  * ============================================
- * FORM SUBMISSION HANDLER
+ * FORM SUBMISSION HANDLER - FINAL VERSION
  * Handles web form submissions via doPost()
+ * 
+ * CRITICAL RULE: Backend NEVER generates confirmation numbers
+ * Frontend generates and sends confirmation number in formData
  * ============================================
  */
 
@@ -25,49 +28,41 @@ function doPost(e) {
   try {
     // Parse form data
     const formData = JSON.parse(e.postData.contents);
-    console.log('📝 Form data keys:', Object.keys(formData));
-    console.log('📝 Form type received:', formData.form_type);
+    console.log('📝 Form type:', formData.form_type);
     
-    // CRITICAL: Detect form type if missing or incorrect
-    if (!formData.form_type || !SHEET_NAMES[formData.form_type]) {
-      formData.form_type = detectFormTypeFromData(formData);
-      console.log('🔍 Auto-detected form type:', formData.form_type);
+    // CRITICAL: Verify frontend sent confirmation number
+    if (!formData.Confirmation_Number || formData.Confirmation_Number.trim() === '') {
+      throw new Error('Frontend must send confirmation number');
     }
     
-    // Process files BEFORE writing to sheet
+    const confirmationNumber = formData.Confirmation_Number;
+    console.log('✅ Using frontend confirmation number:', confirmationNumber);
+    
+    // Detect form type if missing
+    if (!formData.form_type || !SHEET_NAMES[formData.form_type]) {
+      formData.form_type = detectFormTypeFromData(formData);
+    }
+    
+    // Process files if present
     if (formData.fileData) {
       console.log('📁 Processing files...');
       processFilesAndAddLinksToFormData(formData);
     }
     
-    // Write to sheet
+    // Write to sheet (Confirmation_Number already in formData)
     console.log('💾 Writing to sheet...');
     const writeResult = writeToSheet(formData);
     
     if (!writeResult.success) {
-      throw new Error('Failed to write to sheet: ' + writeResult.error);
+      throw new Error('Failed to write: ' + writeResult.error);
     }
     
-    // ✨ CRITICAL: Assign IDs immediately after writing
-    console.log('🎯 Assigning IDs...');
+    // Assign IDs
     const sheet = getCachedSheet(writeResult.sheetName);
     const idResult = assignIDsToRow(sheet, writeResult.row);
     
-    if (!idResult.success) {
-      console.error('⚠️ Warning: ID assignment failed:', idResult.error);
-    }
-    
-    // Generate confirmation number
-    const clubName = formData.Student_Organization || 
-                     formData.Organization_Name || 
-                     'UNKNOWN';
-    const confirmationNumber = generateConfirmationNumber(clubName);
-    
-    // Add confirmation number to sheet
-    addConfirmationNumberToSheet(sheet, writeResult.row, confirmationNumber);
-    
-    // Send confirmation email
-    console.log('📧 Sending confirmation email...');
+    // Send email using frontend's confirmation number
+    console.log('📧 Sending email with confirmation:', confirmationNumber);
     const emailResult = sendConfirmationEmail(
       formData, 
       formData.form_type, 
@@ -75,9 +70,9 @@ function doPost(e) {
     );
     
     const executionTime = Date.now() - startTime;
-    console.log(`✅ Submission completed in ${executionTime}ms`);
+    console.log(`✅ Completed in ${executionTime}ms`);
     
-    // Return success response
+    // Return same confirmation number frontend sent
     return ContentService
       .createTextOutput(JSON.stringify({
         status: "success",
@@ -89,8 +84,7 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch (error) {
-    console.error('❌ Submission failed:', error.toString());
-    
+    console.error('❌ Error:', error.toString());
     return ContentService
       .createTextOutput(JSON.stringify({
         status: "error",
@@ -105,70 +99,44 @@ function doPost(e) {
 // FORM TYPE DETECTION
 // ========================================
 
-/**
- * Auto-detect form type from form data fields
- * @param {Object} formData - Form data object
- * @returns {string} Detected form type
- */
 function detectFormTypeFromData(formData) {
   const keys = Object.keys(formData);
   
-  // Check for feedback form fields
-  if (keys.includes('feedback_type') || 
-      keys.includes('space_rating') || 
-      keys.includes('overall_satisfaction') ||
-      keys.includes('Campus_Club_Space_Feedback')) {
+  if (keys.includes('feedback_type') || keys.includes('space_rating')) {
     return "campus-club-space-feedback";
   }
   
-  // Check for document submission fields
   if (keys.includes('First_Name') && keys.includes('Last_Name') && 
-      (keys.includes('nonPO') || keys.includes('signIn') || keys.includes('invoice'))) {
+      (keys.includes('nonPO') || keys.includes('signIn'))) {
     return "document-submission";
   }
   
-  // Check for Amazon order fields
   if (keys.includes('Wishlist_Link') || keys.includes('wishlist_link')) {
     return "amazon-order";
   }
   
-  // Check for target order fields (multiple item URLs)
-  if (keys.includes('First_Item_Url') || 
-      keys.includes('Second_Item_Url') ||
-      keys.some(key => key.includes('Item_Url'))) {
+  if (keys.includes('First_Item_Url') || keys.some(key => key.includes('Item_Url'))) {
     return "target-order";
   }
   
-  // Final fallback
-  console.log('⚠️ Could not detect form type from fields:', keys);
-  return "target-order"; // Default fallback
+  console.log('⚠️ Could not detect form type, using target-order as default');
+  return "target-order";
 }
 
 // ========================================
 // SHEET WRITING
 // ========================================
 
-/**
- * Write form data to appropriate sheet
- * @param {Object} formData - Form submission data
- * @returns {Object} Write result with success status and row number
- */
 function writeToSheet(formData) {
   try {
     const formType = formData.form_type;
     const sheetName = SHEET_NAMES[formType];
     
     if (!sheetName) {
-      throw new Error(`Unknown form type: ${formType}. Available: ${Object.keys(SHEET_NAMES).join(', ')}`);
+      throw new Error(`Unknown form type: ${formType}`);
     }
     
     const sheet = getCachedSheet(sheetName);
-    
-    if (!sheet) {
-      throw new Error(`Sheet not found: ${sheetName}`);
-    }
-    
-    console.log(`📊 Writing to sheet: ${sheetName} (form type: ${formType})`);
     
     // Get existing headers
     const lastColumn = sheet.getLastColumn();
@@ -176,9 +144,6 @@ function writeToSheet(formData) {
       sheet.getRange(1, 1, 1, lastColumn).getValues()[0] : 
       [];
     
-    console.log(`📊 Existing headers (${headers.length}):`, headers.join(', '));
-    
-    // Build new headers array
     const newHeaders = headers.length > 0 ? [...headers] : ['Timestamp'];
     let columnsAdded = 0;
     
@@ -186,26 +151,22 @@ function writeToSheet(formData) {
     if (!newHeaders.includes('Confirmation_Number')) {
       newHeaders.push('Confirmation_Number');
       columnsAdded++;
-      console.log('➕ Adding Confirmation_Number column');
     }
     
     // Ensure ID columns exist
-    const idColumns = ['Historical_Submission_Id', 'Semester_Id', 'Submission_Id'];
-    idColumns.forEach(col => {
+    ['Historical_Submission_Id', 'Semester_Id', 'Submission_Id'].forEach(col => {
       if (!newHeaders.includes(col)) {
         newHeaders.push(col);
         columnsAdded++;
-        console.log(`➕ Adding ${col} column`);
       }
     });
     
-    // Add file link columns for this form type
+    // Add file columns
     const expectedFileColumns = getExpectedFileColumnsForFormType(formType);
     expectedFileColumns.forEach(columnName => {
       if (!newHeaders.includes(columnName) && formData[columnName]) {
         newHeaders.push(columnName);
         columnsAdded++;
-        console.log(`➕ Adding file column: ${columnName}`);
       }
     });
     
@@ -219,11 +180,10 @@ function writeToSheet(formData) {
         
         const value = formData[key];
         
-        // Always include Event_Date columns
+        // Always include Event_Date
         if (key === 'Event_Date' || key === 'event_date' || key === 'Event Date') {
           newHeaders.push(key);
           columnsAdded++;
-          console.log(`✅ Added Event Date column: ${key}`);
           return;
         }
         
@@ -231,85 +191,61 @@ function writeToSheet(formData) {
         if (isHTMLDateFormat(value)) {
           newHeaders.push(key);
           columnsAdded++;
-          console.log(`✅ Added HTML date field: ${key}`);
           return;
         }
         
-        // Standard field inclusion
-        if (value !== null && 
-            value !== undefined && 
-            value !== "" && 
-            typeof value !== 'object') {
+        // Standard fields
+        if (value !== null && value !== undefined && value !== "" && typeof value !== 'object') {
           newHeaders.push(key);
           columnsAdded++;
-          console.log(`➕ Adding field column: ${key}`);
         }
       }
     });
     
-    // Update headers in sheet if new columns were added
+    // Update headers if needed
     if (columnsAdded > 0 || headers.length === 0) {
       sheet.getRange(1, 1, 1, newHeaders.length).setValues([newHeaders]);
-      console.log(`📊 Headers updated: ${newHeaders.length} total columns`);
     }
     
     // Build row data
     const rowData = newHeaders.map(header => {
-      // Timestamp
       if (header === 'Timestamp') {
-        const now = new Date();
-        return Utilities.formatDate(
-          now,
-          'America/New_York',
-          'MM/dd/yyyy hh:mm:ss a'
-        );
+        return Utilities.formatDate(new Date(), 'America/New_York', 'MM/dd/yyyy hh:mm:ss a');
       }
       
-      // ID columns (will be filled by assignIDsToRow)
       if (header === 'Historical_Submission_Id' || 
           header === 'Semester_Id' || 
           header === 'Submission_Id') {
-        return ''; // Leave blank for ID assignment
-      }
-      
-      // Confirmation Number (will be filled after)
-      if (header === 'Confirmation_Number') {
-        return ''; // Leave blank for now
+        return ''; // Will be filled by assignIDsToRow
       }
       
       let value = formData[header];
       
-      // Handle HTML date format
       if (isHTMLDateFormat(value)) {
-        console.log(`📅 Processing HTML date: ${header} = "${value}"`);
-        const formattedDate = formatHTMLDate(value);
-        console.log(`📅 Formatted date: "${value}" → "${formattedDate}"`);
-        return formattedDate;
+        return formatHTMLDate(value);
       }
       
-      // Standard value processing
       if (value === null || value === undefined) {
-        value = "";
-      } else if (typeof value === 'object' && !(value instanceof Date)) {
-        value = "";
-      } else if (typeof value !== 'string' && typeof value !== 'number' && typeof value !== 'boolean') {
-        value = String(value);
+        return "";
+      }
+      
+      if (typeof value === 'object' && !(value instanceof Date)) {
+        return "";
       }
       
       return value;
     });
     
-    // Write the row
+    // Write row
     const nextRow = sheet.getLastRow() + 1;
     sheet.getRange(nextRow, 1, 1, rowData.length).setValues([rowData]);
     
-    console.log(`✅ Data written to row ${nextRow} in sheet ${sheetName}`);
+    console.log(`✅ Written to row ${nextRow} in ${sheetName}`);
     
     return {
       success: true,
       row: nextRow,
-      sheetName: sheetName,
-      columnsAdded: columnsAdded
+      sheetName: sheetName
     };
     
   } catch (error) {
@@ -318,46 +254,5 @@ function writeToSheet(formData) {
       success: false,
       error: error.toString()
     };
-  }
-}
-
-// ========================================
-// CONFIRMATION NUMBER
-// ========================================
-
-/**
- * Generate confirmation number (CD-MMDDYYYY-CLUBNAME)
- * @param {string} clubName - Organization name
- * @param {Date} submissionDate - Optional submission date
- * @returns {string} Confirmation number
- */
-function generateConfirmationNumber(clubName, submissionDate) {
-  const date = submissionDate || new Date();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  const year = date.getFullYear();
-  
-  const sanitizedClubName = sanitizeFileName(clubName, 15).toUpperCase();
-  
-  return `CD-${month}${day}${year}-${sanitizedClubName}`;
-}
-
-/**
- * Add confirmation number to sheet row
- * @param {Sheet} sheet - Google Sheets sheet
- * @param {number} row - Row number
- * @param {string} confirmationNumber - Confirmation number to add
- */
-function addConfirmationNumberToSheet(sheet, row, confirmationNumber) {
-  try {
-    const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const confirmationCol = findColumnIndex(headers, 'Confirmation_Number');
-    
-    if (confirmationCol !== -1) {
-      sheet.getRange(row, confirmationCol + 1).setValue(confirmationNumber);
-      console.log(`✅ Added confirmation number to row ${row}: ${confirmationNumber}`);
-    }
-  } catch (error) {
-    console.error('❌ Failed to add confirmation number:', error);
   }
 }
